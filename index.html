@@ -472,6 +472,13 @@ function baueDisziplin(d) {
     h('p', { class: 'beschreibung' }, d.text),
 
     h('div', { class: 'panel' },
+      h('h2', {}, 'Zeitstrahl'),
+      h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren   Farbe = Bewertung'),
+      ui.zeitstrahl,
+      ui.detail
+    ),
+
+    h('div', { class: 'panel' },
       h('h2', {}, 'Ski'),
       h('label', { class: 'lbl', for: d.key + '-ski' }, 'Ski auswählen'),
       ui.skiAuswahl,
@@ -499,13 +506,6 @@ function baueDisziplin(d) {
       ui.notiz,
       h('div', { class: 'zeile' }, ui.speichern),
       ui.eintragMeldung
-    ),
-
-    h('div', { class: 'panel' },
-      h('h2', {}, 'Zeitstrahl'),
-      h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren   Farbe = Bewertung'),
-      ui.zeitstrahl,
-      ui.detail
     )
   );
 
