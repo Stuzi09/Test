@@ -555,7 +555,8 @@ function baueDisziplin(d) {
       h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren   Farbe = Bewertung'),
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
-      ui.detail
+      ui.detail,
+      h('div', { class: 'zeile' }, ui.bereitKnopf)
     ),
 
     h('div', { class: 'panel' },
@@ -573,7 +574,7 @@ function baueDisziplin(d) {
       ui.artFelder,
       h('label', { class: 'lbl' }, 'Notiz'),
       ui.notiz,
-      h('div', { class: 'zeile' }, ui.bereitKnopf, ui.speichern),
+      h('div', { class: 'zeile' }, ui.speichern),
       ui.eintragMeldung
     ),
 
