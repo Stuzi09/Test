@@ -411,10 +411,24 @@ function wachsrechnerStart() {
   );
 }
 
+// Setzt alle Wachse einer Gruppe (Flüssig oder Hart) auf aktiv oder inaktiv.
+function setzeGruppe(typ, an) {
+  for (const w of state.wachse) {
+    if (w.typ === typ) w.aktiv = an;
+  }
+  speichern();
+  baueWachsListe();
+  aktualisiereWachsformulare();
+}
+
 function baueWachsListe() {
   homeUI.wachsListe.innerHTML = '';
   for (const [typ, titel] of [['fluessig', 'Flüssig'], ['hart', 'Hart']]) {
-    homeUI.wachsListe.append(h('h3', { style: 'font-size:.95rem; margin:12px 0 4px; color:var(--muted)' }, titel));
+    homeUI.wachsListe.append(
+      h('div', { class: 'zeile', style: 'align-items:center; margin:12px 0 4px' },
+        h('h3', { style: 'font-size:.95rem; margin:0; color:var(--muted); flex:1 1 auto' }, titel),
+        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, true) }, 'Alle'),
+        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, false) }, 'Keine')));
     for (const w of state.wachse.filter(x => x.typ === typ)) {
       homeUI.wachsListe.append(
         h('label', {},
