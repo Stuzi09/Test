@@ -407,26 +407,6 @@ function mittelWert(start, ziel) {
   return werte.length ? werte.reduce((s, x) => s + x, 0) / werte.length : null;
 }
 
-// Propulsor und Beschleuniger nach Schneetemperatur (Vola-Handbuch Seiten 21, 26, 27)
-const PROPULSOR = [
-  { bis: -5, wachs: 'Blue' },
-  { bis: 0, wachs: 'Yellow' }
-];
-const ACCELERATOR = { Blau: 'M23 Blue', Violett: 'M23 Purple', Rot: 'M23 Red', Gelb: 'M23 Yellow' };
-
-// Nur für Schneetemperaturen von -12 bis 0 °C, sonst steht nichts im Heft
-function zusatzEmpfehlung(art, tSchnee) {
-  if (tSchnee === null) return null;
-  const beschleuniger = ACCELERATOR[volaZone(tSchnee)];
-  let propulsor = null;
-  if (tSchnee >= -12 && tSchnee <= 0) {
-    const eintrag = PROPULSOR.find(p => tSchnee <= p.bis);
-    const name = 'Mrace Propulsor ' + eintrag.wachs;
-    propulsor = art === 'neu' ? name : name + ' Moly';
-  }
-  return { propulsor, beschleuniger };
-}
-
 function wachsrechnerStart() {
   const startLuft = zahlOderNull(homeUI.luft);
   const zielLuft = zahlOderNull(homeUI.luftZiel);
@@ -450,30 +430,26 @@ function wachsrechnerStart() {
   const zone = volaZone(luft);
   const linien = VOLA_TABELLE[SCHNEEART_SCHLUESSEL[schneeart]][zone];
   const namen = linien.map(l => `${VOLA_FAMILIEN_NAMEN[l]} ${VOLA_ZONE_NAMEN[zone]}`);
+  // Nur aktivierte Wachse aus der Liste
   const passende = aktiveWachse().filter(x => namen.includes(x.name));
+
   const beide = startLuft !== null && zielLuft !== null;
+  const luftText = beide
+    ? `Luft ${luft.toFixed(1)} °C (Mittel aus Start ${startLuft} und Ziel ${zielLuft})`
+    : `Luft ${luft} °C`;
   const schneeBeide = startSchnee !== null && zielSchnee !== null;
   const schneeText = tSchnee === null ? ''
     : schneeBeide
       ? `, Schnee ${tSchnee.toFixed(1)} °C (Mittel aus Start ${startSchnee} und Ziel ${zielSchnee})`
       : `, Schnee ${tSchnee} °C`;
-  const zusatz = zusatzEmpfehlung(SCHNEEART_SCHLUESSEL[schneeart], tSchnee);
-  const luftText = beide
-    ? `Luft ${luft.toFixed(1)} °C (Mittel aus Start ${startLuft} und Ziel ${zielLuft})`
-    : `Luft ${luft} °C`;
 
   homeUI.ergebnis.append(
     h('div', { class: 'wachs-name' },
       h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
-      'Vola: ' + namen.join(' oder ')),
+      passende.length ? 'Vola: ' + passende.map(x => x.name).join(' oder ') : 'Kein aktives Wachs für diese Bedingungen'),
     h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}${schneeText}, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
-    zusatz
-      ? h('div', { class: 'hinweis' }, `Propulsor: ${zusatz.propulsor || 'nicht im Heft für diese Temperatur'} · Beschleuniger: ${zusatz.beschleuniger}`)
-      : h('div', { class: 'hinweis' }, 'Propulsor und Beschleuniger brauchen eine Schneetemperatur.'),
     h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
-    passende.length
-      ? h('div', { class: 'hinweis' }, 'Aktiv bei dir: ' + passende.map(x => `${x.name} (${x.typ === 'hart' ? 'Hart' : 'Flüssig'})`).join(', '))
-      : h('div', { class: 'hinweis' }, 'Keines dieser Produkte ist aktiv. Unter „Meine Wachse“ aktivieren.')
+    ...(passende.length ? [] : [h('div', { class: 'hinweis' }, 'Aktiviere die passenden Wachse unter „Meine Wachse“.')])
   );
 }
 
