@@ -172,9 +172,8 @@
   .knopf-sekundaer { background: transparent; color: var(--offwhite); border-color: var(--offwhite); }
   .knopf-sekundaer:hover:not(:disabled) { background: rgba(242, 240, 235, .08); }
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .4; cursor: default; }
-  /* Status: Ski ready grün, Kante ready in der Akzentfarbe */
+  /* Ski ready grün. Kante ready nutzt den normalen Primärbutton wie Eintrag speichern */
   .bereit-knopf { background: #3ecf6e; color: var(--schwarz); }
-  .kante-knopf { background: var(--orange); color: var(--schwarz); }
   .knopf-paar > * { flex: 1 1 0; }
   @media (max-width: 600px) {
     .knopf-paar { flex-direction: column; }
@@ -208,6 +207,7 @@
     transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
   }
   .ski:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
+  .ski.kante.aktiv:not(.bereit) { border-color: var(--orange); }
   .ski.bereit.aktiv { border-color: #3ecf6e; }
   .ski.aktiv { outline: 1.5px solid var(--offwhite); outline-offset: 3px; }
   .ski-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; cursor: pointer; }
@@ -712,7 +712,7 @@ function baueDisziplin(d) {
     }
   });
   ui.bereitKnopf = h('button', { class: 'knopf', type: 'button', onclick: () => toggleBereit(d.key) });
-  ui.kanteKnopf = h('button', { class: 'knopf kante-knopf', type: 'button', onclick: () => toggleKante(d.key) });
+  ui.kanteKnopf = h('button', { class: 'knopf', type: 'button', onclick: () => toggleKante(d.key) });
   ui.skiEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiEntfernen(d.key) }, 'Ski entfernen');
   ui.entfernAuswahl = h('select', { class: 'feld' });
   ui.entfernMeldung = h('div', { class: 'hinweis' });
@@ -896,7 +896,7 @@ function aktualisiere(key) {
   const kanteBereit = Boolean(aktiv && aktiv.kanteBereitSeit);
   ui.kanteKnopf.disabled = !hatSki;
   ui.kanteKnopf.textContent = kanteBereit ? 'Kante ready zurücknehmen' : 'Kante ready';
-  ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf kante-knopf';
+  ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf';
 
   zeichneZeitstrahl(key, liste, aktiv);
 }
@@ -1095,7 +1095,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY') : null,
         eigene.length + ' Einträge' + (ski.nummer !== undefined && ski.nummer !== null ? ' · Nr. ' + ski.nummer : '') + (ski.steinski ? ' · Steinski' : '')));
-    box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
+    box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
     svg.style.cursor = 'pointer';
