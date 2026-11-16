@@ -596,10 +596,13 @@ function zeigeArtFelder(key) {
   if (art === 'wachsen') {
     const aktive = aktiveWachse();
     // Zwei Spalten: Rennwachs und Basewachs. Eine leere Auswahl heisst: nichts gewählt.
+    // Pro Spalte nach Flüssig und Hart gruppiert
     const optionen = kategorie => [
       h('option', { value: '' }, '—'),
-      ...aktive.filter(w => w.kategorie === kategorie)
-        .map(w => h('option', { value: w.id }, `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`))
+      ...[['fluessig', 'Flüssig'], ['hart', 'Hart']].map(([typ, titel]) =>
+        h('optgroup', { label: titel },
+          aktive.filter(w => w.kategorie === kategorie && w.typ === typ)
+            .map(w => h('option', { value: w.id }, `${w.marke} · ${w.name}`))))
     ];
     const hatBase = aktive.some(w => w.kategorie === 'basewachs');
     ui.artFelder.append(
