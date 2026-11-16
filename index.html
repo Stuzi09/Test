@@ -156,6 +156,22 @@ const FAHRTARTEN = [
   { id: 'tour', name: 'Tour' }
 ];
 
+// Vola: je Typ (Flüssig, Hart) drei Linien (LM, HM, Moly) in vier Farben, also 24 Wachse
+const VOLA_FAMILIEN_NAMEN = { LM: 'LM Race', HM: 'HM Race', MOLY: 'Race MOLY' };
+const VOLA_ZONE_NAMEN = { blau: 'Blau', violett: 'Violett', rot: 'Rot', gelb: 'Gelb' };
+function baueVolaWachse() {
+  const liste = [];
+  let n = 1;
+  for (const typ of ['fluessig', 'hart']) {
+    for (const linie of ['LM', 'HM', 'MOLY']) {
+      for (const farbe of Object.keys(VOLA_ZONE_NAMEN)) {
+        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv: true });
+      }
+    }
+  }
+  return liste;
+}
+
 // Beispieldaten. Die Wachse werden später durch das Foto-Inventar ersetzt.
 const DEMO = {
   skis: [
@@ -164,12 +180,7 @@ const DEMO = {
     { id: 'c', name: 'Ski C', laenge: 178, disziplin: 'abfahrt', bereitSeit: '2027-02-18' },
     { id: 'd', name: 'Ski D', laenge: 180, disziplin: 'super-g', bereitSeit: null }
   ],
-  wachse: [
-    { id: 'w1', marke: 'Vola', name: 'LM Race', typ: 'fluessig', aktiv: true },
-    { id: 'w2', marke: 'Vola', name: 'HM Race', typ: 'hart', aktiv: true },
-    { id: 'w3', marke: 'Vola', name: 'LM Race MOLY', typ: 'fluessig', aktiv: true },
-    { id: 'w4', marke: 'Vola', name: 'HM Race MOLY', typ: 'hart', aktiv: true }
-  ],
+  wachse: baueVolaWachse(),
   eintraege: [
     { id: 'e1', ski: 'a', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 4, notiz: 'Gute Gleitfähigkeit' },
     { id: 'e2', ski: 'a', datum: '2026-12-12', art: 'wachsen', wachsId: 'w2', bewertung: 3, notiz: '' },
@@ -236,19 +247,11 @@ function neueId() {
 }
 
 // Vola Race: welches Produkt zu Schneeart und Farbe passt (nach der Vola-Tabelle).
-const VOLA_ZONE_NAMEN = { blau: 'Blau', violett: 'Violett', rot: 'Rot', gelb: 'Gelb' };
-const VOLA_FARBEN = { blau: '#1f5fa8', violett: '#7b2a7d', rot: '#d62a2a', gelb: '#f5d400' };
+const VOLA_FARBEN ={ blau: '#1f5fa8', violett: '#7b2a7d', rot: '#d62a2a', gelb: '#f5d400' };
 const VOLA_TABELLE = {
-  neu: {
-    blau: ['LM Race', 'HM Race'], violett: ['LM Race', 'HM Race'], rot: ['LM Race'], gelb: ['LM Race']
-  },
-  alt: {
-    blau: ['HM Race'], violett: ['LM Race', 'HM Race'], rot: ['LM Race', 'HM Race'], gelb: ['LM Race', 'HM Race']
-  },
-  kunst: {
-    blau: ['LM Race MOLY', 'HM Race MOLY'], violett: ['LM Race MOLY', 'HM Race MOLY'],
-    rot: ['LM Race MOLY', 'HM Race MOLY'], gelb: ['LM Race MOLY', 'HM Race MOLY']
-  }
+  neu: { blau: ['LM', 'HM'], violett: ['LM', 'HM'], rot: ['LM'], gelb: ['LM'] },
+  alt: { blau: ['HM'], violett: ['LM', 'HM'], rot: ['LM', 'HM'], gelb: ['LM', 'HM'] },
+  kunst: { blau: ['MOLY'], violett: ['MOLY'], rot: ['MOLY'], gelb: ['MOLY'] }
 };
 const SCHNEEART_SCHLUESSEL = { Neuschnee: 'neu', Altschnee: 'alt', Firn: 'alt', Kunstschnee: 'kunst' };
 
@@ -374,18 +377,19 @@ function wachsrechnerStart() {
   const luft = Number(homeUI.luft.value);
   const schneeart = homeUI.schneeart.value;
   const zone = volaZone(luft);
-  const empfohlen = VOLA_TABELLE[SCHNEEART_SCHLUESSEL[schneeart]][zone];
-  const passende = aktiveWachse().filter(x => empfohlen.includes(x.name));
+  const linien = VOLA_TABELLE[SCHNEEART_SCHLUESSEL[schneeart]][zone];
+  const namen = linien.map(l => `${VOLA_FAMILIEN_NAMEN[l]} ${VOLA_ZONE_NAMEN[zone]}`);
+  const passende = aktiveWachse().filter(x => namen.includes(x.name));
 
   homeUI.ergebnis.innerHTML = '';
   homeUI.ergebnis.append(
     h('div', { class: 'wachs-name' },
       h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
-      'Vola Race: ' + empfohlen.join(' oder ')),
+      'Vola: ' + namen.join(' oder ')),
     h('div', { class: 'hinweis' }, `${schneeart}, Lufttemperatur ${luft} °C, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
     h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
     passende.length
-      ? h('div', { class: 'hinweis' }, 'Aktiv bei dir: ' + passende.map(x => x.name).join(', '))
+      ? h('div', { class: 'hinweis' }, 'Aktiv bei dir: ' + passende.map(x => `${x.name} (${x.typ === 'hart' ? 'Hart' : 'Flüssig'})`).join(', '))
       : h('div', { class: 'hinweis' }, 'Keines dieser Produkte ist aktiv. Unter „Meine Wachse“ aktivieren.')
   );
 }
@@ -406,7 +410,7 @@ function baueWachsListe() {
               aktualisiereWachsformulare();
             }
           }),
-          `${w.marke} · ${w.name}`)
+          `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`)
       );
     }
   }
@@ -560,7 +564,7 @@ function zeigeArtFelder(key) {
       h('label', { class: 'lbl' }, 'Wachs'),
       h('select', { class: 'feld', 'data-feld': 'wachs' },
         wachse.length
-          ? wachse.map(w => h('option', { value: w.id }, `${w.marke} · ${w.name}`))
+          ? wachse.map(w => h('option', { value: w.id }, `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`))
           : h('option', { value: '' }, 'Kein aktives Wachs vorhanden'))
     );
   } else if (art === 'kanten') {
@@ -816,7 +820,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
 function eintragKurz(e) {
   if (e.art === 'wachsen') {
     const w = wachsById(e.wachsId);
-    return w ? `${w.marke} · ${w.name}` : 'gelöschtes Wachs';
+    return w ? `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})` : 'gelöschtes Wachs';
   }
   if (e.art === 'kanten') return KANTEN_OPTIONEN[e.kanten] || '–';
   const namen = ((e.fahrten && e.fahrten.arten) || [])
@@ -857,7 +861,7 @@ function bearbeiteEintrag(key, ski, e) {
   if (e.art === 'wachsen') {
     artFeld = h('select', { class: 'feld' },
       state.wachse.filter(w => w.aktiv || w.id === e.wachsId).map(w =>
-        h('option', { value: w.id, selected: w.id === e.wachsId ? true : null }, `${w.marke} · ${w.name}`)));
+        h('option', { value: w.id, selected: w.id === e.wachsId ? true : null }, `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`)));
   } else if (e.art === 'kanten') {
     artFeld = h('select', { class: 'feld' },
       Object.entries(KANTEN_OPTIONEN).map(([id, name]) =>
@@ -914,7 +918,7 @@ function zeigeDetail(key, ski, e, punkt) {
   const zeilen = [];
   if (e.art === 'wachsen') {
     const w = wachsById(e.wachsId);
-    zeilen.push(['Wachs', w ? `${w.marke} · ${w.name}` : 'gelöschtes Wachs']);
+    zeilen.push(['Wachs', w ? `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})` : 'gelöschtes Wachs']);
   } else if (e.art === 'kanten') {
     zeilen.push(['Kanten', KANTEN_OPTIONEN[e.kanten] || '–']);
   } else {
