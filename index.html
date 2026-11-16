@@ -167,7 +167,7 @@ function baueVolaWachse() {
       for (const farbe of Object.keys(VOLA_ZONE_NAMEN)) {
         // Moly ist standardmässig aus, da nur zwei Farben pro Linie vorhanden sind
         const aktiv = !linie.endsWith('MOLY');
-        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv });
+        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv, kategorie: 'rennwachs' });
       }
     }
   }
@@ -280,7 +280,10 @@ function ladeState() {
         // Typ (Flüssig/Hart) aus den Vorgaben übernehmen
         daten.wachse.forEach(w => {
           const d = DEMO.wachse.find(x => x.name === w.name);
-          if (d) w.typ = d.typ;
+          if (d) {
+            w.typ = d.typ;
+            w.kategorie = d.kategorie;
+          }
         });
       }
       if (Array.isArray(daten.wachse) && daten.wachse.some(w => !DEMO.wachse.some(d => d.name === w.name))) {
@@ -561,13 +564,23 @@ function zeigeArtFelder(key) {
   ui.artFelder.innerHTML = '';
 
   if (art === 'wachsen') {
-    const wachse = aktiveWachse();
+    const aktive = aktiveWachse();
+    // Zwei Spalten: Rennwachs und Basewachs. Eine leere Auswahl heisst: nichts gewählt.
+    const optionen = kategorie => [
+      h('option', { value: '' }, '—'),
+      ...aktive.filter(w => w.kategorie === kategorie)
+        .map(w => h('option', { value: w.id }, `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`))
+    ];
+    const hatBase = aktive.some(w => w.kategorie === 'basewachs');
     ui.artFelder.append(
-      h('label', { class: 'lbl' }, 'Wachs'),
-      h('select', { class: 'feld', 'data-feld': 'wachs' },
-        wachse.length
-          ? wachse.map(w => h('option', { value: w.id }, `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`))
-          : h('option', { value: '' }, 'Kein aktives Wachs vorhanden'))
+      h('div', { class: 'zeile' },
+        h('div', {},
+          h('label', { class: 'lbl' }, 'Rennwachs'),
+          h('select', { class: 'feld', 'data-feld': 'wachs-rennen' }, optionen('rennwachs'))),
+        h('div', {},
+          h('label', { class: 'lbl' }, 'Basewachs'),
+          h('select', { class: 'feld', 'data-feld': 'wachs-base' }, optionen('basewachs')))),
+      hatBase ? null : h('div', { class: 'hinweis' }, 'Basewachse sind noch nicht erfasst.')
     );
   } else if (art === 'kanten') {
     ui.artFelder.append(
@@ -689,7 +702,8 @@ function eintragSpeichern(key) {
   }
 
   if (eintrag.art === 'wachsen') {
-    const wachsId = ui.artFelder.querySelector('[data-feld="wachs"]').value;
+    const wachsId = ui.artFelder.querySelector('[data-feld="wachs-rennen"]').value
+      || ui.artFelder.querySelector('[data-feld="wachs-base"]').value;
     if (!wachsById(wachsId)) {
       ui.eintragMeldung.textContent = 'Bitte zuerst ein aktives Wachs auswählen.';
       return;
