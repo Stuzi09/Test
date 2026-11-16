@@ -165,10 +165,10 @@ const DEMO = {
     { id: 'd', name: 'Ski D', laenge: 180, disziplin: 'super-g', bereitSeit: null }
   ],
   wachse: [
-    { id: 'w1', marke: 'Vola', name: 'LM Race', aktiv: true },
-    { id: 'w2', marke: 'Vola', name: 'HM Race', aktiv: true },
-    { id: 'w3', marke: 'Vola', name: 'LM Race MOLY', aktiv: true },
-    { id: 'w4', marke: 'Vola', name: 'HM Race MOLY', aktiv: true }
+    { id: 'w1', marke: 'Vola', name: 'LM Race', typ: 'fluessig', aktiv: true },
+    { id: 'w2', marke: 'Vola', name: 'HM Race', typ: 'hart', aktiv: true },
+    { id: 'w3', marke: 'Vola', name: 'LM Race MOLY', typ: 'fluessig', aktiv: true },
+    { id: 'w4', marke: 'Vola', name: 'HM Race MOLY', typ: 'hart', aktiv: true }
   ],
   eintraege: [
     { id: 'e1', ski: 'a', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 4, notiz: 'Gute Gleitfähigkeit' },
@@ -271,6 +271,13 @@ function ladeState() {
     if (roh) {
       const daten = JSON.parse(roh);
       // Gespeicherte Fremdmarken durch die Wöhler-Wachse ersetzen
+      if (Array.isArray(daten.wachse)) {
+        // Typ (Flüssig/Hart) aus den Vorgaben übernehmen
+        daten.wachse.forEach(w => {
+          const d = DEMO.wachse.find(x => x.name === w.name);
+          if (d) w.typ = d.typ;
+        });
+      }
       if (Array.isArray(daten.wachse) && daten.wachse.some(w => !DEMO.wachse.some(d => d.name === w.name))) {
         daten.wachse = kopie(DEMO.wachse);
       }
@@ -385,20 +392,23 @@ function wachsrechnerStart() {
 
 function baueWachsListe() {
   homeUI.wachsListe.innerHTML = '';
-  for (const w of state.wachse) {
-    homeUI.wachsListe.append(
-      h('label', {},
-        h('input', {
-          type: 'checkbox',
-          checked: w.aktiv ? true : null,
-          onchange: ev => {
-            w.aktiv = ev.target.checked;
-            speichern();
-            aktualisiereWachsformulare();
-          }
-        }),
-        `${w.marke} · ${w.name}`)
-    );
+  for (const [typ, titel] of [['fluessig', 'Flüssig'], ['hart', 'Hart']]) {
+    homeUI.wachsListe.append(h('h3', { style: 'font-size:.95rem; margin:12px 0 4px; color:var(--muted)' }, titel));
+    for (const w of state.wachse.filter(x => x.typ === typ)) {
+      homeUI.wachsListe.append(
+        h('label', {},
+          h('input', {
+            type: 'checkbox',
+            checked: w.aktiv ? true : null,
+            onchange: ev => {
+              w.aktiv = ev.target.checked;
+              speichern();
+              aktualisiereWachsformulare();
+            }
+          }),
+          `${w.marke} · ${w.name}`)
+      );
+    }
   }
 }
 
