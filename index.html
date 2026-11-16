@@ -412,9 +412,9 @@ function wachsrechnerStart() {
 }
 
 // Setzt alle Wachse einer Gruppe (Flüssig oder Hart) auf aktiv oder inaktiv.
-function setzeGruppe(typ, an) {
+function setzeGruppe(typ, kategorie, an) {
   for (const w of state.wachse) {
-    if (w.typ === typ) w.aktiv = an;
+    if (w.typ === typ && w.kategorie === kategorie) w.aktiv = an;
   }
   speichern();
   baueWachsListe();
@@ -423,13 +423,19 @@ function setzeGruppe(typ, an) {
 
 function baueWachsListe() {
   homeUI.wachsListe.innerHTML = '';
-  for (const [typ, titel] of [['fluessig', 'Flüssig'], ['hart', 'Hart']]) {
+  const gruppen = [
+    ['fluessig', 'rennwachs', 'Flüssig · Rennwachs'],
+    ['fluessig', 'basewachs', 'Flüssig · Base'],
+    ['hart', 'rennwachs', 'Hart · Rennwachs'],
+    ['hart', 'basewachs', 'Hart · Base']
+  ];
+  for (const [typ, kategorie, titel] of gruppen) {
     homeUI.wachsListe.append(
       h('div', { class: 'zeile', style: 'align-items:center; margin:12px 0 4px' },
         h('h3', { style: 'font-size:.95rem; margin:0; color:var(--muted); flex:1 1 auto' }, titel),
-        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, true) }, 'Alle'),
-        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, false) }, 'Keine')));
-    for (const w of state.wachse.filter(x => x.typ === typ)) {
+        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, kategorie, true) }, 'Alle'),
+        h('button', { class: 'knopf-sekundaer', type: 'button', style: 'flex:0 0 auto', onclick: () => setzeGruppe(typ, kategorie, false) }, 'Keine')));
+    for (const w of state.wachse.filter(x => x.typ === typ && x.kategorie === kategorie)) {
       homeUI.wachsListe.append(
         h('label', {},
           h('input', {
