@@ -237,6 +237,7 @@ function neueId() {
 
 // Vola Race: welches Produkt zu Schneeart und Farbe passt (nach der Vola-Tabelle).
 const VOLA_ZONE_NAMEN = { blau: 'Blau', violett: 'Violett', rot: 'Rot', gelb: 'Gelb' };
+const VOLA_FARBEN = { blau: '#1f5fa8', violett: '#7b2a7d', rot: '#d62a2a', gelb: '#f5d400' };
 const VOLA_TABELLE = {
   neu: {
     blau: ['LM Race', 'HM Race'], violett: ['LM Race', 'HM Race'], rot: ['LM Race'], gelb: ['LM Race']
@@ -371,7 +372,9 @@ function wachsrechnerStart() {
 
   homeUI.ergebnis.innerHTML = '';
   homeUI.ergebnis.append(
-    h('div', { class: 'wachs-name' }, 'Vola Race: ' + empfohlen.join(' oder ')),
+    h('div', { class: 'wachs-name' },
+      h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
+      'Vola Race: ' + empfohlen.join(' oder ')),
     h('div', { class: 'hinweis' }, `${schneeart}, Lufttemperatur ${luft} °C, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
     h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
     passende.length
