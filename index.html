@@ -70,6 +70,10 @@
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .45; cursor: default; }
   .bereit-knopf { background: #3ecf6e; color: #0c2340; }
   .kante-knopf { background: #8fd3ff; color: #0c2340; }
+  .knopf-paar > * { flex: 1 1 0; }
+  @media (max-width: 600px) {
+    .knopf-paar { flex-direction: column; }
+  }
   .bestaetigt { color: #3ecf6e; font-weight: 700; margin-top: 6px; min-height: 1.2em; }
   .checkgruppe { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; }
   .check { color: var(--text); font-size: .95rem; display: inline-flex; align-items: center; gap: 6px; }
@@ -558,7 +562,7 @@ function baueDisziplin(d) {
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
-      h('div', { class: 'zeile' }, ui.bereitKnopf, ui.kanteKnopf)
+      h('div', { class: 'zeile knopf-paar' }, ui.bereitKnopf, ui.kanteKnopf)
     ),
 
     h('div', { class: 'panel' },
