@@ -531,6 +531,9 @@ function baueDisziplin(d) {
     Array.from({ length: 11 }, (_, i) => h('option', { value: String(i) }, String(i))));
   ui.neuDisziplin = h('select', { class: 'feld' },
     DISZIPLINEN.map(x => h('option', { value: x.key, selected: x.key === d.key ? true : null }, x.titel)));
+  ui.neuMonat = h('select', { class: 'feld' },
+    MONATE.map((m, i) => h('option', { value: String(i + 1), selected: i === new Date().getMonth() ? true : null }, m)));
+  ui.neuJahr = h('input', { class: 'feld', type: 'number', min: '2000', max: '2100', step: '1', value: String(new Date().getFullYear()) });
   ui.neuStein = h('input', { type: 'checkbox' });
 
   // Eintrag erfassen
@@ -586,6 +589,10 @@ function baueDisziplin(d) {
       ui.neuDisziplin,
       h('label', { class: 'lbl' }, 'Nummer (0 bis 10)'),
       ui.neuNummer,
+      h('label', { class: 'lbl' }, 'Monat'),
+      ui.neuMonat,
+      h('label', { class: 'lbl' }, 'Jahr'),
+      ui.neuJahr,
       h('label', { class: 'check', style: 'margin-top:10px' }, ui.neuStein, 'Steinski'),
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
@@ -653,7 +660,8 @@ function zeigeArtFelder(key) {
 // Name mit Nummer und Steinski-Hinweis
 function skiBeschriftung(s) {
   const nr = s.nummer !== undefined && s.nummer !== null ? ' · Nr. ' + s.nummer : '';
-  return s.name + nr + (s.steinski ? ' (Steinski)' : '');
+  const datum = s.monat && s.jahr ? ' · ' + String(s.monat).padStart(2, '0') + '/' + s.jahr : '';
+  return s.name + nr + datum + (s.steinski ? ' (Steinski)' : '');
 }
 
 // Stellt die Auswahl, die Knöpfe und den Zeitstrahl einer Disziplin auf den aktuellen Stand.
@@ -711,6 +719,8 @@ function skiHinzufuegen(key) {
     id: neueId(),
     name,
     nummer: Number(ui.neuNummer.value),
+    monat: Number(ui.neuMonat.value),
+    jahr: Number(ui.neuJahr.value),
     disziplin: ui.neuDisziplin.value,
     steinski: ui.neuStein.checked,
     bereitSeit: null
