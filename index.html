@@ -476,6 +476,7 @@ function baueDisziplin(d) {
     h('div', { class: 'panel' },
       h('h2', {}, 'Zeitstrahl'),
       h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren   Farbe = Bewertung'),
+      h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail
     ),
@@ -733,6 +734,10 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         eigene.length + ' Einträge' + (ski.laenge ? ' · ' + ski.laenge + ' cm' : '')));
     box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
+    // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
+    svg.style.cursor = 'pointer';
+    svg.addEventListener('click', () => zeigeVerlauf(key, ski, eigene));
+
     svgEl('line', { x1: PAD, x2: W - PAD, y1: BASE_Y, y2: BASE_Y, class: 'baseline' }, svg);
     for (const d of monate) {
       const tx = x(d.getTime());
@@ -764,10 +769,45 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       punkt.setAttribute('class', 'dot');
       punkt.setAttribute('fill', FARBEN[bewertung - 1]);
       punkt.setAttribute('tabindex', '0');
-      const oeffnen = () => zeigeDetail(key, ski, e, punkt);
+      const oeffnen = ev => {
+        ev.stopPropagation(); // nicht zusätzlich den ganzen Verlauf öffnen
+        zeigeDetail(key, ski, e, punkt);
+      };
       punkt.addEventListener('click', oeffnen);
-      punkt.addEventListener('keydown', ev => { if (ev.key === 'Enter') oeffnen(); });
+      punkt.addEventListener('keydown', ev => { if (ev.key === 'Enter') oeffnen(ev); });
     }
+  }
+}
+
+// Kurztext zu einem Eintrag: Wachs, Kanten oder Fahrten
+function eintragKurz(e) {
+  if (e.art === 'wachsen') {
+    const w = wachsById(e.wachsId);
+    return w ? `${w.marke} · ${w.name}` : 'gelöschtes Wachs';
+  }
+  if (e.art === 'kanten') return KANTEN_OPTIONEN[e.kanten] || '–';
+  const namen = ((e.fahrten && e.fahrten.arten) || [])
+    .map(id => (FAHRTARTEN.find(f => f.id === id) || {}).name)
+    .filter(Boolean);
+  return (namen.length ? namen.join(', ') : '–') + ' · ' + ((e.fahrten && e.fahrten.abfahrten) || 0) + ' Abfahrten';
+}
+
+// Listet alle Einträge eines Skis, neueste zuerst.
+function zeigeVerlauf(key, ski, eigene) {
+  document.querySelectorAll('.dot.aktiv-punkt').forEach(n => n.classList.remove('aktiv-punkt'));
+  const box = UI[key].detail;
+  box.innerHTML = '';
+  box.append(h('div', { style: 'font-weight:600' }, `${ski.name} · Verlauf (${eigene.length} Einträge)`));
+  if (!eigene.length) {
+    box.append(h('div', { class: 'leer' }, 'Noch keine Einträge.'));
+    return;
+  }
+  for (const e of [...eigene].reverse()) {
+    box.append(h('div', { style: 'margin-top:10px; padding-top:8px; border-top:1px solid var(--line)' },
+      h('div', {}, h('span', { class: 'k' }, datumDE(e.datum) + ' · ' + ARTEN[e.art] + ' · '), `Bewertung ${e.bewertung}/5`),
+      h('div', {}, eintragKurz(e)),
+      e.notiz ? h('div', { class: 'k' }, e.notiz) : null
+    ));
   }
 }
 
