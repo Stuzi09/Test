@@ -493,11 +493,12 @@ function importVonDatei(ev) {
 }
 
 function zuruecksetzen() {
-  if (!confirm('Alle Ski, Wachse und Einträge durch die Beispieldaten ersetzen?')) return;
-  state = kopie(DEMO);
-  speichern();
-  alleAktualisieren();
-  homeUI.meldung.textContent = 'Beispieldaten geladen.';
+  bestaetigeInline(homeUI.meldung, 'Alle Ski, Wachse und Einträge durch die Beispieldaten ersetzen?', () => {
+    state = kopie(DEMO);
+    speichern();
+    alleAktualisieren();
+    homeUI.meldung.textContent = 'Beispieldaten geladen.';
+  });
 }
 
 // ============================================================
@@ -521,6 +522,7 @@ function baueDisziplin(d) {
   ui.bereitKnopf = h('button', { class: 'knopf', type: 'button', onclick: () => toggleBereit(d.key) });
   ui.skiEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiEntfernen(d.key) }, 'Ski entfernen');
   ui.entfernAuswahl = h('select', { class: 'feld' });
+  ui.entfernMeldung = h('div', { class: 'hinweis' });
   ui.bereitText = h('div', { class: 'hinweis' });
   ui.skiMeldung = h('div', { class: 'hinweis' });
 
@@ -587,7 +589,8 @@ function baueDisziplin(d) {
       h('h2', {}, 'Ski entfernen'),
       h('label', { class: 'lbl' }, 'Welcher Ski'),
       ui.entfernAuswahl,
-      h('div', { class: 'zeile' }, ui.skiEntfernen)
+      h('div', { class: 'zeile' }, ui.skiEntfernen),
+      ui.entfernMeldung
     )
   );
 
@@ -706,16 +709,26 @@ function skiHinzufuegen(key) {
   ui.skiMeldung.textContent = name + ' angelegt.';
 }
 
+// Bestätigung direkt im Seitenbereich. Das Browserfenster confirm() ist in Claude blockiert.
+function bestaetigeInline(box, text, onJa) {
+  const frage = h('div', { class: 'zeile' },
+    h('span', { class: 'hinweis' }, text),
+    h('button', { class: 'knopf', type: 'button', onclick: () => { frage.remove(); onJa(); } }, 'Ja'),
+    h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => frage.remove() }, 'Nein'));
+  box.append(frage);
+}
+
 function skiEntfernen(key) {
   const ski = state.skis.find(s => s.id === UI[key].entfernAuswahl.value);
   if (!ski) return;
-  if (!confirm(ski.name + ' und alle zugehörigen Einträge löschen?')) return;
-  state.skis = state.skis.filter(s => s.id !== ski.id);
-  state.eintraege = state.eintraege.filter(e => e.ski !== ski.id);
-  aktuellerSki[key] = null;
-  speichern();
-  aktualisiere(key);
-  UI[key].skiMeldung.textContent = ski.name + ' entfernt.';
+  bestaetigeInline(UI[key].entfernMeldung, `${ski.name} und alle Einträge löschen?`, () => {
+    state.skis = state.skis.filter(s => s.id !== ski.id);
+    state.eintraege = state.eintraege.filter(e => e.ski !== ski.id);
+    aktuellerSki[key] = null;
+    speichern();
+    aktualisiere(key);
+    UI[key].entfernMeldung.textContent = ski.name + ' entfernt.';
+  });
 }
 
 // Ready-Knopf: setzt den Ski auf bereit (mit heutigem Datum) oder nimmt es zurück.
@@ -788,11 +801,12 @@ function eintragSpeichern(key) {
 }
 
 function eintragLoeschen(key, e) {
-  if (!confirm('Diesen Eintrag löschen?')) return;
-  state.eintraege = state.eintraege.filter(x => x.id !== e.id);
-  speichern();
-  aktualisiere(key);
-  UI[key].detail.textContent = 'Eintrag gelöscht.';
+  bestaetigeInline(UI[key].detail, 'Diesen Eintrag löschen?', () => {
+    state.eintraege = state.eintraege.filter(x => x.id !== e.id);
+    speichern();
+    aktualisiere(key);
+    UI[key].detail.textContent = 'Eintrag gelöscht.';
+  });
 }
 
 // ============================================================
