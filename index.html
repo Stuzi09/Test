@@ -159,6 +159,11 @@ const FAHRTARTEN = [
 // Vola: je Typ (Flüssig, Hart) drei Linien (LM, HM, Moly) in vier Farben, also 24 Wachse
 const VOLA_FAMILIEN_NAMEN = { LM: 'LM Race', HM: 'HM Race', LMMOLY: 'LM Race MOLY', HMMOLY: 'HM Race MOLY' };
 const VOLA_ZONE_NAMEN = { blau: 'Blau', violett: 'Violett', rot: 'Rot', gelb: 'Gelb' };
+// Vola-Basewachse (Beta-Wachse)
+const VOLA_BASE_HART = ['Base Hard', 'Base Medium', 'Base Medium Race', 'Base Soft', 'Base Soft Race',
+  'Premium MX901', 'Graphite', 'Graphite LM', 'VRB', 'X-Hard', 'MX-E Gelb', 'MX-E Rot', 'MX-E Violett', 'MX-E Blau'];
+const VOLA_BASE_FLUESSIG = ['MX-E Gelb', 'MX-E Rot', 'MX-E Violett', 'MX-E Blau'];
+
 function baueVolaWachse() {
   const liste = [];
   let n = 1;
@@ -170,6 +175,12 @@ function baueVolaWachse() {
         liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv, kategorie: 'rennwachs' });
       }
     }
+  }
+  for (const name of VOLA_BASE_HART) {
+    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'hart', aktiv: true, kategorie: 'basewachs' });
+  }
+  for (const name of VOLA_BASE_FLUESSIG) {
+    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'fluessig', aktiv: true, kategorie: 'basewachs' });
   }
   return liste;
 }
@@ -286,7 +297,8 @@ function ladeState() {
           }
         });
       }
-      if (Array.isArray(daten.wachse) && daten.wachse.some(w => !DEMO.wachse.some(d => d.name === w.name))) {
+      if (Array.isArray(daten.wachse) && (daten.wachse.length !== DEMO.wachse.length
+          || daten.wachse.some(w => !DEMO.wachse.some(d => d.name === w.name)))) {
         daten.wachse = kopie(DEMO.wachse);
       }
       return daten;
