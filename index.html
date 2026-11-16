@@ -75,7 +75,9 @@
   .ergebnis { border-left: 4px solid var(--accent); padding-left: 12px; margin-top: 14px; }
   .wachs-name { font-weight: 700; font-size: 1.05rem; }
   .ski { background: var(--panel); border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; border: 2px solid transparent; }
-  .ski.aktiv { border-color: var(--accent); }
+  .ski.bereit { border-color: #3ecf6e; }
+  .ski.aktiv { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .ski-bereit { color: #3ecf6e; font-weight: 700; }
   .ski-kopf { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; cursor: pointer; }
   .ski-name { font-weight: 600; }
   .ski-meta { color: var(--muted); font-size: .85rem; }
@@ -726,8 +728,10 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       }
     },
       h('span', { class: 'ski-name' }, ski.name),
-      h('span', { class: 'ski-meta' }, eigene.length + ' Einträge' + (ski.laenge ? ' · ' + ski.laenge + ' cm' : '')));
-    box.append(h('div', { class: 'ski' + (istAktiv ? ' aktiv' : '') }, kopf, svg));
+      h('span', { class: 'ski-meta' },
+        ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY · ') : null,
+        eigene.length + ' Einträge' + (ski.laenge ? ' · ' + ski.laenge + ' cm' : '')));
+    box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     svgEl('line', { x1: PAD, x2: W - PAD, y1: BASE_Y, y2: BASE_Y, class: 'baseline' }, svg);
     for (const d of monate) {
