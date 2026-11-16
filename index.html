@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STUWax</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#1f6fd1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="STUWax">
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <p class="brand">STUWax</p>
+      <p class="lead">Wetter und Schnee eingeben, du bekommst den passenden Wachs und die vier Wachsarten.</p>
+    </header>
+
+    <form id="form" class="card" novalidate>
+      <label class="field">
+        <span>Lufttemperatur (°C)</span>
+        <input id="airTemp" type="number" step="0.5" min="-40" max="15" placeholder="z. B. -4">
+      </label>
+
+      <label class="field">
+        <span>Himmel</span>
+        <select id="sky">
+          <option value="sonnig">Sonnig</option>
+          <option value="bewoelkt" selected>Bewölkt</option>
+          <option value="klar">Klar / Nacht</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Niederschlag</span>
+        <select id="precip">
+          <option value="keiner" selected>Keiner</option>
+          <option value="schnee">Schneefall</option>
+          <option value="regen">Regen</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Schneetyp</span>
+        <select id="snowType">
+          <option value="neu">Neuschnee</option>
+          <option value="alt" selected>Altschnee</option>
+          <option value="kunst">Kunstschnee</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Feuchte <em>automatisch oder selbst wählen</em></span>
+        <select id="moisture">
+          <option value="auto" selected>Automatisch</option>
+          <option value="trocken">Trocken</option>
+          <option value="nass">Nass</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Schneetemperatur (°C) <em>optional, sonst wird sie geschätzt</em></span>
+        <input id="snowTemp" type="number" step="0.5" min="-40" max="10" placeholder="z. B. -6">
+      </label>
+
+      <button type="submit">Wachs berechnen</button>
+      <p id="error" class="error" role="alert" hidden></p>
+    </form>
+
+    <section id="result" class="card result" aria-live="polite" hidden>
+      <div class="best">
+        <div class="swatch" id="swatch"></div>
+        <div>
+          <p class="label">Passendster Wachs</p>
+          <h2 id="resultName"></h2>
+          <p id="resultDesc" class="note"></p>
+        </div>
+      </div>
+
+      <div class="types">
+        <div class="type">
+          <h3>Race Wax</h3>
+          <p id="tRace"></p>
+          <p class="note">Alle Vola-Race-Produkte sind fluorfrei.</p>
+        </div>
+        <div class="type">
+          <h3>Flüssigwachs</h3>
+          <p id="tLiquid"></p>
+        </div>
+      </div>
+
+      <h3>Belagsstruktur</h3>
+      <p id="resultFinish"></p>
+
+      <h3>Mischen</h3>
+      <p id="resultCompose"></p>
+
+      <ul id="resultNotes" class="notes"></ul>
+    </section>
+
+    <p class="hint">Die Grenzen sind Richtwerte. Grundlage ist der Vola-Katalog 2025-26. Die Stufen überlappen sich, die App wählt nach nass oder trocken.</p>
+  </main>
+
+  <script src="wax.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
