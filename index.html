@@ -352,8 +352,13 @@ function baueHome() {
   homeUI.zustand = h('select', { class: 'feld', id: 'zustand' },
     h('option', { value: 'trocken' }, 'trocken'),
     h('option', { value: 'nass' }, 'nass'));
-  homeUI.schneeart = h('select', { class: 'feld', id: 'schneeart' },
-    ['Neuschnee', 'Altschnee', 'Kunstschnee', 'Firn'].map(a => h('option', { value: a }, a)));
+  // Start und Ziel: leer lassen, wenn nur ein Wert gilt
+  const schneeartOptionen = () => [h('option', { value: '' }, '—'),
+    ...['Neuschnee', 'Altschnee', 'Kunstschnee', 'Firn'].map(a => h('option', { value: a }, a))];
+  homeUI.schneeart = h('select', { class: 'feld', id: 'schneeart' }, schneeartOptionen());
+  homeUI.schneeartZiel = h('select', { class: 'feld', id: 'schneeartZiel' }, schneeartOptionen());
+  homeUI.luftZiel = h('input', { class: 'feld', id: 'luftZiel', type: 'number', step: '0.5', placeholder: 'leer lassen' });
+  homeUI.schneeZiel = h('input', { class: 'feld', id: 'schneeZiel', type: 'number', step: '0.5', placeholder: 'leer lassen' });
   homeUI.niederschlag = h('select', { class: 'feld', id: 'niederschlag' },
     ['kein Niederschlag', 'Regen', 'Nassschnee', 'Schneefall'].map(a => h('option', { value: a }, a)));
   homeUI.ergebnis = h('div', { class: 'ergebnis' });
@@ -363,11 +368,20 @@ function baueHome() {
   sektion.append(
     h('h1', {}, 'Wachsrechner'),
     h('div', { class: 'panel' },
-      h('label', { class: 'lbl', for: 'luft' }, 'Lufttemperatur (°C)'), homeUI.luft,
-      h('label', { class: 'lbl', for: 'schnee' }, 'Schneetemperatur (°C)'), homeUI.schnee,
+      h('div', { class: 'zeile' },
+        h('div', {},
+          h('div', { class: 'hinweis' }, 'Start'),
+          h('label', { class: 'lbl', for: 'luft' }, 'Lufttemperatur (°C)'), homeUI.luft,
+          h('label', { class: 'lbl', for: 'schnee' }, 'Schneetemperatur (°C)'), homeUI.schnee,
+          h('label', { class: 'lbl', for: 'schneeart' }, 'Schneeart'), homeUI.schneeart),
+        h('div', {},
+          h('div', { class: 'hinweis' }, 'Ziel'),
+          h('label', { class: 'lbl', for: 'luftZiel' }, 'Lufttemperatur (°C)'), homeUI.luftZiel,
+          h('label', { class: 'lbl', for: 'schneeZiel' }, 'Schneetemperatur (°C)'), homeUI.schneeZiel,
+          h('label', { class: 'lbl', for: 'schneeartZiel' }, 'Schneeart'), homeUI.schneeartZiel)),
+      h('div', { class: 'hinweis' }, 'Nur ein Wert ausfüllen, wenn es keinen Wechsel gibt. Sind beide da, rechnet die App mit dem Mittelwert.'),
       h('label', { class: 'lbl', for: 'feuchte' }, 'Luftfeuchtigkeit (%)'), homeUI.feuchte,
       h('label', { class: 'lbl', for: 'zustand' }, 'Schnee'), homeUI.zustand,
-      h('label', { class: 'lbl', for: 'schneeart' }, 'Schneeart'), homeUI.schneeart,
       h('label', { class: 'lbl', for: 'niederschlag' }, 'Niederschlag'), homeUI.niederschlag,
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf', type: 'button', onclick: wachsrechnerStart }, 'Wachs empfehlen')),
@@ -381,20 +395,49 @@ function baueHome() {
   );
 }
 
+// Zahl aus einem Eingabefeld, leer ergibt null
+function zahlOderNull(feld) {
+  const t = feld.value.trim();
+  return t === '' ? null : Number(t);
+}
+
+// Mittelwert aus Start und Ziel. Ist nur ein Wert da, gilt dieser allein.
+function mittelWert(start, ziel) {
+  const werte = [start, ziel].filter(x => x !== null && !Number.isNaN(x));
+  return werte.length ? werte.reduce((s, x) => s + x, 0) / werte.length : null;
+}
+
 function wachsrechnerStart() {
-  const luft = Number(homeUI.luft.value);
-  const schneeart = homeUI.schneeart.value;
+  const startLuft = zahlOderNull(homeUI.luft);
+  const zielLuft = zahlOderNull(homeUI.luftZiel);
+  const luft = mittelWert(startLuft, zielLuft);
+  const schneeart = homeUI.schneeart.value || homeUI.schneeartZiel.value;
+  const niederschlag = homeUI.niederschlag.value;
+
+  homeUI.ergebnis.innerHTML = '';
+  if (luft === null) {
+    homeUI.ergebnis.append(h('div', { class: 'hinweis' }, 'Bitte mindestens eine Lufttemperatur eingeben.'));
+    return;
+  }
+  if (!schneeart) {
+    homeUI.ergebnis.append(h('div', { class: 'hinweis' }, 'Bitte mindestens eine Schneeart wählen.'));
+    return;
+  }
+
   const zone = volaZone(luft);
   const linien = VOLA_TABELLE[SCHNEEART_SCHLUESSEL[schneeart]][zone];
   const namen = linien.map(l => `${VOLA_FAMILIEN_NAMEN[l]} ${VOLA_ZONE_NAMEN[zone]}`);
   const passende = aktiveWachse().filter(x => namen.includes(x.name));
+  const beide = startLuft !== null && zielLuft !== null;
+  const luftText = beide
+    ? `Luft ${luft.toFixed(1)} °C (Mittel aus Start ${startLuft} und Ziel ${zielLuft})`
+    : `Luft ${luft} °C`;
 
-  homeUI.ergebnis.innerHTML = '';
   homeUI.ergebnis.append(
     h('div', { class: 'wachs-name' },
       h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
       'Vola: ' + namen.join(' oder ')),
-    h('div', { class: 'hinweis' }, `${schneeart}, ${homeUI.niederschlag.value}, Lufttemperatur ${luft} °C, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
+    h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
     h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
     passende.length
       ? h('div', { class: 'hinweis' }, 'Aktiv bei dir: ' + passende.map(x => `${x.name} (${x.typ === 'hart' ? 'Hart' : 'Flüssig'})`).join(', '))
