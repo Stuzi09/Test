@@ -559,13 +559,7 @@ function baueDisziplin(d) {
       ui.skiAuswahl,
       h('div', { class: 'zeile' }, ui.bereitKnopf, ui.skiEntfernen),
       ui.bereitText,
-      ui.skiMeldung,
-      h('hr', { class: 'trenner' }),
-      h('label', { class: 'lbl' }, 'Neuer Ski'),
-      ui.neuName,
-      ui.neuLaenge,
-      h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
+      ui.skiMeldung
     ),
 
     h('div', { class: 'panel' },
@@ -579,6 +573,14 @@ function baueDisziplin(d) {
       ui.notiz,
       h('div', { class: 'zeile' }, ui.speichern),
       ui.eintragMeldung
+    ),
+
+    h('div', { class: 'panel' },
+      h('h2', {}, 'Neuer Ski'),
+      ui.neuName,
+      ui.neuLaenge,
+      h('div', { class: 'zeile' },
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
     )
   );
 
