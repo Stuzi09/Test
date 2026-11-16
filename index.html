@@ -266,7 +266,21 @@ function neueId() {
 
 // Vola Race: welches Produkt zu Schneeart und Farbe passt (nach der Vola-Tabelle).
 const VOLA_FARBEN ={ blau: '#1f5fa8', violett: '#7b2a7d', rot: '#d62a2a', gelb: '#f5d400' };
+const VOLA_TABELLE = {
+  neu: { blau: ['LM', 'HM'], violett: ['LM', 'HM'], rot: ['LM'], gelb: ['LM'] },
+  alt: { blau: ['HM'], violett: ['LM', 'HM'], rot: ['LM', 'HM'], gelb: ['LM', 'HM'] },
+  kunst: { blau: ['LMMOLY', 'HMMOLY'], violett: ['LMMOLY', 'HMMOLY'], rot: ['LMMOLY', 'HMMOLY'], gelb: ['LMMOLY', 'HMMOLY'] }
+};
 const SCHNEEART_SCHLUESSEL = { Neuschnee: 'neu', Altschnee: 'alt', Firn: 'alt', Kunstschnee: 'kunst' };
+
+// Farbe nach Lufttemperatur. Die Bereiche der Tabelle überlappen,
+// hier gilt: bis -10 blau, bis -4 violett, bis 0 rot, darüber gelb.
+function volaZone(t) {
+  if (t <= -10) return 'blau';
+  if (t <= -4) return 'violett';
+  if (t <= 0) return 'rot';
+  return 'gelb';
+}
 
 // ============================================================
 // 3. Speicherung
@@ -393,225 +407,53 @@ function mittelWert(start, ziel) {
   return werte.length ? werte.reduce((s, x) => s + x, 0) / werte.length : null;
 }
 
-// =====================================================================
-// Stuwax – Wachsempfehlung nach Vola-Unterlagen, Version 2
-// =====================================================================
-
-const KONST = {
-  SCHNEE_UNTER_LUFT: 1.3,
-  SCHNEE_MAX: 0,
-  FEUCHTE_TROCKEN: 50,
-  FEUCHTE_NASS: 80,
-  ABWEICHUNG_HINWEIS: 3
-};
-
-const SCHNEE_FARBEN = [
-  { farbe: 'Blau',    warm: -10, kalt: -25 },
-  { farbe: 'Violett', warm: -4,  kalt: -12 },
-  { farbe: 'Rot',     warm: 0,   kalt: -5 },
-  { farbe: 'Gelb',    warm: 10,  kalt: -2 }
-];
-
-const UEBERLAPPUNG = [
-  { kalt: 'Blau',    warm: 'Violett', tKalt: -12, tWarm: -10 },
-  { kalt: 'Violett', warm: 'Rot',     tKalt: -5,  tWarm: -4 },
-  { kalt: 'Rot',     warm: 'Gelb',    tKalt: -2,  tWarm: 0 }
-];
-
-const VERFUEGBAR = {
-  neu:   { Blau: ['LM', 'HM'], Violett: ['LM', 'HM'], Rot: ['LM'],       Gelb: ['LM'] },
-  alt:   { Blau: ['HM'],       Violett: ['LM', 'HM'], Rot: ['LM', 'HM'], Gelb: ['LM', 'HM'] },
-  kunst: { Blau: ['LM', 'HM'], Violett: ['LM', 'HM'], Rot: ['LM', 'HM'], Gelb: ['LM', 'HM'] }
-};
-
-const HAUPTFAMILIE = { neu: 'LM', alt: 'HM', kunst: 'LM' };
-
-function round1(x) {
-  return Math.round(x * 10) / 10;
-}
-
-function wachsName(schneeart, familie, farbe) {
-  const moly = schneeart === 'kunst' ? ' MOLY' : '';
-  return `${familie} Race${moly} ${farbe}`;
-}
-
-function schneeAusLuft(tLuft) {
-  return Math.min(tLuft - KONST.SCHNEE_UNTER_LUFT, KONST.SCHNEE_MAX);
-}
-
-function lageFuer(nass, rf) {
-  if (nass) return 'Wet';
-  if (rf === null) return 'unbekannt';
-  if (rf >= KONST.FEUCHTE_NASS) return 'Wet';
-  if (rf < KONST.FEUCHTE_TROCKEN) return 'Dry';
-  return 'Mitte';
-}
-
-function mischen(teile) {
-  const roh = teile.map(t => t.anteil * 100);
-  const gerundet = roh.map(x => Math.round(x));
-  const rest = 100 - gerundet.reduce((s, x) => s + x, 0);
-  const gross = roh.indexOf(Math.max(...roh));
-  gerundet[gross] += rest;
-  return teile
-    .map((t, i) => ({ wachs: t.wachs, anteilProzent: gerundet[i] }))
-    .filter(t => t.anteilProzent > 0);
-}
-
-function farbeFuer(t) {
-  const treffer = SCHNEE_FARBEN.find(f => t <= f.warm && t >= f.kalt);
-  if (treffer) return treffer.farbe;
-  return t > 10 ? 'Gelb' : 'Blau';
-}
-
-function mischungFuer(schneeart, t) {
-  const familie = HAUPTFAMILIE[schneeart];
-
-  const ueberlappung = UEBERLAPPUNG.find(u => t >= u.tKalt && t <= u.tWarm);
-  if (ueberlappung) {
-    const anteilWarm = (t - ueberlappung.tKalt) / (ueberlappung.tWarm - ueberlappung.tKalt);
-    return mischen([
-      { wachs: wachsName(schneeart, familie, ueberlappung.kalt), anteil: 1 - anteilWarm },
-      { wachs: wachsName(schneeart, familie, ueberlappung.warm), anteil: anteilWarm }
-    ]);
-  }
-
-  return [{ wachs: wachsName(schneeart, familie, farbeFuer(t)), anteilProzent: 100 }];
-}
-
-function propulsorWahl(schneeart, tSchnee) {
-  if (tSchnee < -12 || tSchnee > 0) return null;
-  const farbe = tSchnee < -5 ? 'Blue' : 'Yellow';
-  const name = `Mrace Propulsor ${farbe}`;
-  return schneeart === 'neu' ? name : `${name} Moly`;
-}
-
-function beschleunigerWahl(tAequiv) {
-  if (tAequiv > 0) return 'M23 Yellow';
-  if (tAequiv > -4) return 'M23 Red';
-  if (tAequiv > -10) return 'M23 Purple';
-  return 'M23 Blue';
-}
-
-function empfehle({ schneeart, tLuft, tSchnee = null, rf = null, nass = false }) {
-  if (!['neu', 'alt', 'kunst'].includes(schneeart)) {
-    throw new RangeError('schneeart muss neu, alt oder kunst sein');
-  }
-  if (!Number.isFinite(tLuft)) {
-    throw new TypeError('tLuft fehlt oder ist keine Zahl');
-  }
-  if (tSchnee !== null && !Number.isFinite(tSchnee)) {
-    throw new TypeError('tSchnee ist keine Zahl');
-  }
-  if (rf !== null && (!Number.isFinite(rf) || rf < 0 || rf > 100)) {
-    throw new RangeError('rf muss zwischen 0 und 100 liegen');
-  }
-
-  const hinweise = [];
-  const gemessen = tSchnee !== null;
-
-  let schnee;
-  if (gemessen) {
-    schnee = Math.min(tSchnee, KONST.SCHNEE_MAX);
-    if (tSchnee > KONST.SCHNEE_MAX) {
-      hinweise.push('Schnee über 0 °C wird wie 0 °C gerechnet.');
-    }
-    const schaetzung = schneeAusLuft(tLuft);
-    if (Math.abs(schnee - schaetzung) > KONST.ABWEICHUNG_HINWEIS) {
-      hinweise.push(
-        `Die Messung weicht von der Schätzung aus der Luft (${round1(schaetzung)} °C) ` +
-        `um mehr als ${KONST.ABWEICHUNG_HINWEIS} °C ab. Die Messung wird verwendet.`
-      );
-    }
-  } else {
-    schnee = schneeAusLuft(tLuft);
-  }
-
-  const tAequiv = gemessen ? schnee + KONST.SCHNEE_UNTER_LUFT : tLuft;
-
-  if (tLuft < -25 || tLuft > 10) {
-    hinweise.push('Die Lufttemperatur liegt außerhalb des Schneebilds (-25 bis 10 °C).');
-  }
-
-  const mischung = mischungFuer(schneeart, tAequiv);
-  if (mischung.length > 1) {
-    hinweise.push(
-      'Mischung: Vola nennt kein Mischverhältnis. Die lineare Gewichtung ist eine Annahme, ' +
-      'die am Ski geprüft werden muss.'
-    );
-  }
-  hinweise.push('Beschleuniger: Basis im Heft unklar, Auswahl mit Vorbehalt.');
-
-  return {
-    basis: gemessen ? 'Schneetemperatur gemessen' : 'Schneetemperatur aus Luft geschätzt',
-    schneeTemperatur: round1(schnee),
-    aequivalenteLuft: round1(tAequiv),
-    mischung,
-    propulsor: propulsorWahl(schneeart, schnee),
-    beschleuniger: beschleunigerWahl(tAequiv),
-    lage: lageFuer(nass, rf),
-    hinweise
-  };
-}
-
 function wachsrechnerStart() {
   const startLuft = zahlOderNull(homeUI.luft);
   const zielLuft = zahlOderNull(homeUI.luftZiel);
-  const tLuft = mittelWert(startLuft, zielLuft);
+  const luft = mittelWert(startLuft, zielLuft);
   const startSchnee = zahlOderNull(homeUI.schnee);
   const zielSchnee = zahlOderNull(homeUI.schneeZiel);
   const tSchnee = mittelWert(startSchnee, zielSchnee);
   const schneeart = homeUI.schneeart.value || homeUI.schneeartZiel.value;
-  const rf = zahlOderNull(homeUI.feuchte);
   const niederschlag = homeUI.niederschlag.value;
-  const nass = homeUI.zustand.value === 'nass' || niederschlag === 'Regen' || niederschlag === 'Nassschnee';
 
   homeUI.ergebnis.innerHTML = '';
-  const meldung = text => homeUI.ergebnis.append(h('div', { class: 'hinweis' }, text));
-  if (tLuft === null) { meldung('Bitte mindestens eine Lufttemperatur eingeben.'); return; }
-  if (!schneeart) { meldung('Bitte mindestens eine Schneeart wählen.'); return; }
-
-  let r;
-  try {
-    r = empfehle({ schneeart: SCHNEEART_SCHLUESSEL[schneeart], tLuft, tSchnee, rf, nass });
-  } catch (err) {
-    meldung('Eingaben prüfen: ' + err.message);
+  if (luft === null) {
+    homeUI.ergebnis.append(h('div', { class: 'hinweis' }, 'Bitte mindestens eine Lufttemperatur eingeben.'));
+    return;
+  }
+  if (!schneeart) {
+    homeUI.ergebnis.append(h('div', { class: 'hinweis' }, 'Bitte mindestens eine Schneeart wählen.'));
     return;
   }
 
-  // Nur aktivierte Wachse anzeigen, nicht aktive Anteile weglassen
-  const teile = r.mischung.map(m => ({
-    name: m.wachs,
-    anteil: m.anteilProzent,
-    aktiv: aktiveWachse().filter(w => w.name === m.wachs)
-  }));
-  const sichtbar = teile.filter(t => t.aktiv.length > 0);
-  const ausgeblendet = teile.filter(t => t.aktiv.length === 0).map(t => t.name);
-  const hauptFarbe = r.mischung
-    .reduce((a, b) => (b.anteilProzent > a.anteilProzent ? b : a)).wachs.split(' ').pop();
+  const zone = volaZone(luft);
+  const linien = VOLA_TABELLE[SCHNEEART_SCHLUESSEL[schneeart]][zone];
+  const namen = linien.map(l => `${VOLA_FAMILIEN_NAMEN[l]} ${VOLA_ZONE_NAMEN[zone]}`);
+  // Nur aktivierte Wachse aus der Liste
+  // Jedes Produkt nur einmal, mit den Typen, die aktiviert sind
+  const gefunden = [...new Set(namen)]
+    .map(n => ({ name: n, typen: [...new Set(aktiveWachse().filter(x => x.name === n).map(x => (x.typ === 'hart' ? 'Hart' : 'Flüssig')))] }))
+    .filter(g => g.typen.length > 0);
 
   const beide = startLuft !== null && zielLuft !== null;
   const luftText = beide
-    ? `Luft ${tLuft.toFixed(1)} °C (Mittel aus Start ${startLuft} und Ziel ${zielLuft})`
-    : `Luft ${tLuft} °C`;
+    ? `Luft ${luft.toFixed(1)} °C (Mittel aus Start ${startLuft} und Ziel ${zielLuft})`
+    : `Luft ${luft} °C`;
   const schneeBeide = startSchnee !== null && zielSchnee !== null;
-  const schneeText = tSchnee === null
-    ? `Schnee ca. ${r.schneeTemperatur} °C (aus der Luft geschätzt)`
+  const schneeText = tSchnee === null ? ''
     : schneeBeide
-      ? `Schnee ${r.schneeTemperatur} °C (Mittel aus Start ${startSchnee} und Ziel ${zielSchnee})`
-      : `Schnee ${r.schneeTemperatur} °C`;
+      ? `, Schnee ${tSchnee.toFixed(1)} °C (Mittel aus Start ${startSchnee} und Ziel ${zielSchnee})`
+      : `, Schnee ${tSchnee} °C`;
 
   homeUI.ergebnis.append(
     h('div', { class: 'wachs-name' },
-      h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[hauptFarbe.toLowerCase()]};margin-right:6px;vertical-align:middle` }),
-      sichtbar.length ? 'Vola Race' : 'Kein aktives Wachs für diese Bedingungen'),
-    ...sichtbar.map(t => h('div', { class: 'hinweis' },
-      (teile.length > 1 ? `${t.anteil} % ` : '') +
-      `${t.name} (${[...new Set(t.aktiv.map(w => (w.typ === 'hart' ? 'Hart' : 'Flüssig')))].join(', ')})`)),
-    h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}, ${schneeText}, Lage ${r.lage}.`),
-    ...r.hinweise.filter(x => !x.startsWith('Beschleuniger')).map(x => h('div', { class: 'hinweis' }, x)),
-    ...(ausgeblendet.length ? [h('div', { class: 'hinweis' }, 'Nicht aktiv, daher ausgeblendet: ' + ausgeblendet.join(', '))] : []),
-    ...(sichtbar.length ? [] : [h('div', { class: 'hinweis' }, 'Aktiviere die passenden Wachse unter „Meine Wachse“.')])
+      h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
+      gefunden.length ? 'Vola Race' : 'Kein aktives Wachs für diese Bedingungen'),
+    ...gefunden.map(g => h('div', { class: 'hinweis' }, `${g.name} (${g.typen.join(', ')})`)),
+    h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}${schneeText}, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
+    h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
+    ...(gefunden.length ? [] : [h('div', { class: 'hinweis' }, 'Aktiviere die passenden Wachse unter „Meine Wachse“.')])
   );
 }
 
