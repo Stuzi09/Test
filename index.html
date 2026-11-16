@@ -165,21 +165,18 @@ const DEMO = {
     { id: 'd', name: 'Ski D', laenge: 180, disziplin: 'super-g', bereitSeit: null }
   ],
   wachse: [
-    { id: 'w1', marke: 'Vola', name: 'Hartwachs Blau (Beispiel)', typ: 'hart', aktiv: true, rennwachs: true },
-    { id: 'w2', marke: 'Toko', name: 'Hartwachs Rot (Beispiel)', typ: 'hart', aktiv: true },
-    { id: 'w3', marke: 'Swix', name: 'Flüssigwachs Universal (Beispiel)', typ: 'fluessig', aktiv: true },
-    { id: 'w4', marke: 'Holmenkol', name: 'Flüssigwachs Nass (Beispiel)', typ: 'fluessig', aktiv: true },
-    { id: 'w5', marke: 'Wachsmeister', name: 'Hartwachs Kalt (Beispiel)', typ: 'hart', aktiv: false }
+    { id: 'w1', marke: 'Wöhler', name: 'Race Wachs Hart', typ: 'hart', aktiv: true },
+    { id: 'w2', marke: 'Wöhler', name: 'Race Wachs Flüssig', typ: 'fluessig', aktiv: true }
   ],
   eintraege: [
     { id: 'e1', ski: 'a', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 4, notiz: 'Gute Gleitfähigkeit' },
-    { id: 'e2', ski: 'a', datum: '2026-12-12', art: 'wachsen', wachsId: 'w3', bewertung: 3, notiz: '' },
+    { id: 'e2', ski: 'a', datum: '2026-12-12', art: 'wachsen', wachsId: 'w2', bewertung: 3, notiz: '' },
     { id: 'e3', ski: 'a', datum: '2027-01-08', art: 'wachsen', wachsId: 'w2', bewertung: 5, notiz: 'Sehr schnell' },
     { id: 'e4', ski: 'a', datum: '2027-01-20', art: 'skifahren', fahrten: { arten: ['piste', 'training'], abfahrten: 14 }, bewertung: 4, notiz: '' },
-    { id: 'e5', ski: 'a', datum: '2027-02-03', art: 'wachsen', wachsId: 'w4', bewertung: 2, notiz: 'Zu nass, Ski klebte' },
+    { id: 'e5', ski: 'a', datum: '2027-02-03', art: 'wachsen', wachsId: 'w2', bewertung: 2, notiz: 'Zu nass, Ski klebte' },
     { id: 'e6', ski: 'b', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 3, notiz: '' },
     { id: 'e7', ski: 'b', datum: '2027-01-15', art: 'wachsen', wachsId: 'w2', bewertung: 4, notiz: '' },
-    { id: 'e8', ski: 'c', datum: '2027-01-08', art: 'wachsen', wachsId: 'w3', bewertung: 4, notiz: '' },
+    { id: 'e8', ski: 'c', datum: '2027-01-08', art: 'wachsen', wachsId: 'w2', bewertung: 4, notiz: '' },
     { id: 'e9', ski: 'c', datum: '2027-02-19', art: 'kanten', kanten: 'diamant', bewertung: 3, notiz: '' },
     { id: 'e10', ski: 'c', datum: '2027-02-19', art: 'wachsen', wachsId: 'w1', bewertung: 5, notiz: '' },
     { id: 'e11', ski: 'c', datum: '2027-02-20', art: 'skifahren', fahrten: { arten: ['tiefschnee'], abfahrten: 6 }, bewertung: 5, notiz: '' }
@@ -249,7 +246,14 @@ function empfehleTyp(w) {
 function ladeState() {
   try {
     const roh = localStorage.getItem(STORAGE_KEY);
-    if (roh) return JSON.parse(roh);
+    if (roh) {
+      const daten = JSON.parse(roh);
+      // Gespeicherte Fremdmarken durch die Wöhler-Wachse ersetzen
+      if (Array.isArray(daten.wachse) && daten.wachse.some(w => w.marke !== 'Wöhler')) {
+        daten.wachse = kopie(DEMO.wachse);
+      }
+      return daten;
+    }
   } catch (err) {
     console.warn('Gespeicherte Daten konnten nicht gelesen werden', err);
   }
@@ -346,8 +350,7 @@ function wachsrechnerStart() {
     schneeart: homeUI.schneeart.value
   };
   const typ = empfehleTyp(w);
-  // Der Wachsrechner empfiehlt nur aktive Vola-Rennwachse
-  const passende = aktiveWachse().filter(x => x.typ === typ && x.marke === 'Vola' && x.rennwachs);
+  const passende = aktiveWachse().filter(x => x.typ === typ);
   const titel = typ === 'hart' ? 'Hartwachs' : 'Flüssigwachs';
   const grund = (typ === 'hart' ? 'kalt und trocken' : 'nass oder warm') + ' (Platzhalter-Regel)';
 
@@ -357,7 +360,7 @@ function wachsrechnerStart() {
     h('div', { class: 'hinweis' }, `${w.schneeart}, ${grund}. Schneetemperatur ${w.schnee} °C.`),
     passende.length
       ? h('div', { class: 'hinweis' }, 'Aktiv: ' + passende.map(x => `${x.marke} ${x.name}`).join(', '))
-      : h('div', { class: 'hinweis' }, 'Kein aktives Vola-Rennwachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
+      : h('div', { class: 'hinweis' }, 'Kein aktives Wachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
   );
 }
 
@@ -375,18 +378,7 @@ function baueWachsListe() {
             aktualisiereWachsformulare();
           }
         }),
-        `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`,
-        h('label', { class: 'check' },
-          h('input', {
-            type: 'checkbox',
-            checked: w.rennwachs ? true : null,
-            onchange: ev => {
-              w.rennwachs = ev.target.checked;
-              speichern();
-            }
-          }),
-          'Rennwachs')
-      )
+        `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`)
     );
   }
 }
