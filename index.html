@@ -527,7 +527,6 @@ function baueDisziplin(d) {
   ui.skiMeldung = h('div', { class: 'hinweis' });
 
   // Neuer Ski
-  ui.neuName = h('input', { class: 'feld', type: 'text', placeholder: 'Name, z. B. Ski E', maxlength: '40' });
   ui.neuNummer = h('select', { class: 'feld' },
     Array.from({ length: 11 }, (_, i) => h('option', { value: String(i) }, String(i))));
   ui.neuDisziplin = h('select', { class: 'feld' },
@@ -583,11 +582,10 @@ function baueDisziplin(d) {
 
     h('div', { class: 'panel' },
       h('h2', {}, 'Neuer Ski'),
-      ui.neuName,
-      h('label', { class: 'lbl' }, 'Nummer (0 bis 10)'),
-      ui.neuNummer,
       h('label', { class: 'lbl' }, 'Disziplin'),
       ui.neuDisziplin,
+      h('label', { class: 'lbl' }, 'Nummer (0 bis 10)'),
+      ui.neuNummer,
       h('label', { class: 'check', style: 'margin-top:10px' }, ui.neuStein, 'Steinski'),
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
@@ -674,7 +672,7 @@ function aktualisiere(key) {
 
   ui.entfernAuswahl.innerHTML = '';
   for (const s of liste) {
-    ui.entfernAuswahl.append(h('option', { value: s.id }, s.name));
+    ui.entfernAuswahl.append(h('option', { value: s.id }, skiBeschriftung(s)));
   }
   ui.entfernAuswahl.value = aktiv ? aktiv.id : '';
 
@@ -707,11 +705,8 @@ function alleAktualisieren() {
 
 function skiHinzufuegen(key) {
   const ui = UI[key];
-  const name = ui.neuName.value.trim();
-  if (!name) {
-    ui.skiMeldung.textContent = 'Bitte einen Namen eingeben.';
-    return;
-  }
+  // Kein Namensfeld: der Name ist die Disziplin, die Nummer kommt dazu
+  const name = DISZIPLINEN.find(x => x.key === ui.neuDisziplin.value).titel;
   const ski = {
     id: neueId(),
     name,
@@ -722,7 +717,6 @@ function skiHinzufuegen(key) {
   };
   state.skis.push(ski);
   aktuellerSki[ski.disziplin] = ski.id;
-  ui.neuName.value = '';
   ui.neuStein.checked = false;
   speichern();
   alleAktualisieren();
