@@ -68,6 +68,7 @@
   .knopf { background: var(--accent); color: var(--bg); }
   .knopf-sekundaer { background: transparent; color: var(--text); border-color: var(--line); }
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .45; cursor: default; }
+  .bereit-knopf { background: #3ecf6e; color: #0c2340; }
   .checkgruppe { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; }
   .check { color: var(--text); font-size: .95rem; display: inline-flex; align-items: center; gap: 6px; }
   .wachsliste label { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: .95rem; }
@@ -557,12 +558,9 @@ function baueDisziplin(d) {
       h('h2', {}, 'Ski'),
       h('label', { class: 'lbl', for: d.key + '-ski' }, 'Ski auswählen'),
       ui.skiAuswahl,
-      h('div', { class: 'zeile' }, ui.bereitKnopf, ui.skiEntfernen),
       ui.bereitText,
-      ui.skiMeldung
-    ),
-
-    h('div', { class: 'panel' },
+      ui.skiMeldung,
+      h('hr', { class: 'trenner' }),
       h('h2', {}, 'Eintrag erfassen'),
       h('label', { class: 'lbl' }, 'Tag'),
       ui.datum,
@@ -571,7 +569,7 @@ function baueDisziplin(d) {
       ui.artFelder,
       h('label', { class: 'lbl' }, 'Notiz'),
       ui.notiz,
-      h('div', { class: 'zeile' }, ui.speichern),
+      h('div', { class: 'zeile' }, ui.bereitKnopf, ui.speichern),
       ui.eintragMeldung
     ),
 
@@ -580,7 +578,8 @@ function baueDisziplin(d) {
       ui.neuName,
       ui.neuLaenge,
       h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'),
+        ui.skiEntfernen)
     )
   );
 
@@ -655,11 +654,11 @@ function aktualisiere(key) {
 
   if (aktiv) {
     ui.bereitKnopf.textContent = aktiv.bereitSeit ? 'Ready zurücknehmen' : 'Ski ready';
-    ui.bereitKnopf.className = aktiv.bereitSeit ? 'knopf-sekundaer' : 'knopf';
+    ui.bereitKnopf.className = aktiv.bereitSeit ? 'knopf-sekundaer' : 'knopf bereit-knopf';
     ui.bereitText.textContent = aktiv.bereitSeit ? 'Bereit seit ' + datumDE(aktiv.bereitSeit) : 'Nicht bereit';
   } else {
     ui.bereitKnopf.textContent = 'Ski ready';
-    ui.bereitKnopf.className = 'knopf';
+    ui.bereitKnopf.className = 'knopf bereit-knopf';
     ui.bereitText.textContent = 'Lege zuerst einen Ski an.';
   }
 
