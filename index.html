@@ -165,7 +165,7 @@ const DEMO = {
     { id: 'd', name: 'Ski D', laenge: 180, disziplin: 'super-g', bereitSeit: null }
   ],
   wachse: [
-    { id: 'w1', marke: 'Vola', name: 'Hartwachs Blau (Beispiel)', typ: 'hart', aktiv: true },
+    { id: 'w1', marke: 'Vola', name: 'Hartwachs Blau (Beispiel)', typ: 'hart', aktiv: true, rennwachs: true },
     { id: 'w2', marke: 'Toko', name: 'Hartwachs Rot (Beispiel)', typ: 'hart', aktiv: true },
     { id: 'w3', marke: 'Swix', name: 'Flüssigwachs Universal (Beispiel)', typ: 'fluessig', aktiv: true },
     { id: 'w4', marke: 'Holmenkol', name: 'Flüssigwachs Nass (Beispiel)', typ: 'fluessig', aktiv: true },
@@ -346,8 +346,8 @@ function wachsrechnerStart() {
     schneeart: homeUI.schneeart.value
   };
   const typ = empfehleTyp(w);
-  // Der Wachsrechner empfiehlt nur Vola-Wachse
-  const passende = aktiveWachse().filter(x => x.typ === typ && x.marke === 'Vola');
+  // Der Wachsrechner empfiehlt nur aktive Vola-Rennwachse
+  const passende = aktiveWachse().filter(x => x.typ === typ && x.marke === 'Vola' && x.rennwachs);
   const titel = typ === 'hart' ? 'Hartwachs' : 'Flüssigwachs';
   const grund = (typ === 'hart' ? 'kalt und trocken' : 'nass oder warm') + ' (Platzhalter-Regel)';
 
@@ -357,7 +357,7 @@ function wachsrechnerStart() {
     h('div', { class: 'hinweis' }, `${w.schneeart}, ${grund}. Schneetemperatur ${w.schnee} °C.`),
     passende.length
       ? h('div', { class: 'hinweis' }, 'Aktiv: ' + passende.map(x => `${x.marke} ${x.name}`).join(', '))
-      : h('div', { class: 'hinweis' }, 'Kein aktives Vola-Wachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
+      : h('div', { class: 'hinweis' }, 'Kein aktives Vola-Rennwachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
   );
 }
 
@@ -375,7 +375,18 @@ function baueWachsListe() {
             aktualisiereWachsformulare();
           }
         }),
-        `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`)
+        `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})`,
+        h('label', { class: 'check' },
+          h('input', {
+            type: 'checkbox',
+            checked: w.rennwachs ? true : null,
+            onchange: ev => {
+              w.rennwachs = ev.target.checked;
+              speichern();
+            }
+          }),
+          'Rennwachs')
+      )
     );
   }
 }
