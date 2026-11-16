@@ -157,15 +157,17 @@ const FAHRTARTEN = [
 ];
 
 // Vola: je Typ (Flüssig, Hart) drei Linien (LM, HM, Moly) in vier Farben, also 24 Wachse
-const VOLA_FAMILIEN_NAMEN = { LM: 'LM Race', HM: 'HM Race', MOLY: 'Race MOLY' };
+const VOLA_FAMILIEN_NAMEN = { LM: 'LM Race', HM: 'HM Race', LMMOLY: 'LM Race MOLY', HMMOLY: 'HM Race MOLY' };
 const VOLA_ZONE_NAMEN = { blau: 'Blau', violett: 'Violett', rot: 'Rot', gelb: 'Gelb' };
 function baueVolaWachse() {
   const liste = [];
   let n = 1;
   for (const typ of ['fluessig', 'hart']) {
-    for (const linie of ['LM', 'HM', 'MOLY']) {
+    for (const linie of ['LM', 'HM', 'LMMOLY', 'HMMOLY']) {
       for (const farbe of Object.keys(VOLA_ZONE_NAMEN)) {
-        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv: true });
+        // Moly ist standardmässig aus, da nur zwei Farben pro Linie vorhanden sind
+        const aktiv = !linie.endsWith('MOLY');
+        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv });
       }
     }
   }
@@ -251,7 +253,7 @@ const VOLA_FARBEN ={ blau: '#1f5fa8', violett: '#7b2a7d', rot: '#d62a2a', gelb: 
 const VOLA_TABELLE = {
   neu: { blau: ['LM', 'HM'], violett: ['LM', 'HM'], rot: ['LM'], gelb: ['LM'] },
   alt: { blau: ['HM'], violett: ['LM', 'HM'], rot: ['LM', 'HM'], gelb: ['LM', 'HM'] },
-  kunst: { blau: ['MOLY'], violett: ['MOLY'], rot: ['MOLY'], gelb: ['MOLY'] }
+  kunst: { blau: ['LMMOLY', 'HMMOLY'], violett: ['LMMOLY', 'HMMOLY'], rot: ['LMMOLY', 'HMMOLY'], gelb: ['LMMOLY', 'HMMOLY'] }
 };
 const SCHNEEART_SCHLUESSEL = { Neuschnee: 'neu', Altschnee: 'alt', Firn: 'alt', Kunstschnee: 'kunst' };
 
