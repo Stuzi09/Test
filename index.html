@@ -422,10 +422,10 @@ function setzeGruppe(typ, kategorie, an) {
 function baueWachsListe() {
   homeUI.wachsListe.innerHTML = '';
   const gruppen = [
-    ['hart', 'basewachs', 'Hartwachs (Base)'],
-    ['fluessig', 'basewachs', 'Flüssigwachs (Base)'],
-    ['fluessig', 'rennwachs', 'Flüssigwachs (Race)'],
-    ['hart', 'rennwachs', 'Hartwachs (Race)']
+    ['hart', 'basewachs', 'Hard Base'],
+    ['hart', 'rennwachs', 'Hard Race'],
+    ['fluessig', 'basewachs', 'Flüssig Base'],
+    ['fluessig', 'rennwachs', 'Flüssig Race']
   ];
   for (const [typ, kategorie, titel] of gruppen) {
     homeUI.wachsListe.append(
