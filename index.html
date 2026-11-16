@@ -69,6 +69,7 @@
   .knopf-sekundaer { background: transparent; color: var(--text); border-color: var(--line); }
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .45; cursor: default; }
   .bereit-knopf { background: #3ecf6e; color: #0c2340; }
+  .kante-knopf { background: #8fd3ff; color: #0c2340; }
   .bestaetigt { color: #3ecf6e; font-weight: 700; margin-top: 6px; min-height: 1.2em; }
   .checkgruppe { display: flex; flex-wrap: wrap; gap: 8px 14px; margin-top: 4px; }
   .check { color: var(--text); font-size: .95rem; display: inline-flex; align-items: center; gap: 6px; }
@@ -514,6 +515,7 @@ function baueDisziplin(d) {
     }
   });
   ui.bereitKnopf = h('button', { class: 'knopf', type: 'button', onclick: () => toggleBereit(d.key) });
+  ui.kanteKnopf = h('button', { class: 'knopf kante-knopf', type: 'button', onclick: () => toggleKante(d.key) });
   ui.skiEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiEntfernen(d.key) }, 'Ski entfernen');
   ui.entfernAuswahl = h('select', { class: 'feld' });
   ui.entfernMeldung = h('div', { class: 'hinweis' });
@@ -556,7 +558,7 @@ function baueDisziplin(d) {
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
-      h('div', { class: 'zeile' }, ui.bereitKnopf)
+      h('div', { class: 'zeile' }, ui.bereitKnopf, ui.kanteKnopf)
     ),
 
     h('div', { class: 'panel' },
@@ -694,6 +696,11 @@ function aktualisiere(key) {
     ui.bereitText.textContent = 'Lege zuerst einen Ski an.';
   }
 
+  const kanteBereit = Boolean(aktiv && aktiv.kanteBereitSeit);
+  ui.kanteKnopf.disabled = !hatSki;
+  ui.kanteKnopf.textContent = kanteBereit ? 'Kante ready zurücknehmen' : 'Kante ready';
+  ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf kante-knopf';
+
   zeichneZeitstrahl(key, liste, aktiv);
 }
 
@@ -748,6 +755,15 @@ function skiEntfernen(key) {
     aktualisiere(key);
     UI[key].entfernMeldung.textContent = ski.name + ' entfernt.';
   });
+}
+
+// Kante-Ready-Knopf: merkt sich das Datum, an dem die Kanten bereit waren
+function toggleKante(key) {
+  const ski = aktiverSki(key);
+  if (!ski) return;
+  ski.kanteBereitSeit = ski.kanteBereitSeit ? null : heuteISO();
+  speichern();
+  aktualisiere(key);
 }
 
 // Ready-Knopf: setzt den Ski auf bereit (mit heutigem Datum) oder nimmt es zurück.
