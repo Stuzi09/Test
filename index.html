@@ -172,9 +172,9 @@
   .knopf-sekundaer { background: transparent; color: var(--offwhite); border-color: var(--offwhite); }
   .knopf-sekundaer:hover:not(:disabled) { background: rgba(242, 240, 235, .08); }
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .4; cursor: default; }
-  /* Status-Knöpfe: dunkles Rot für Ski ready, helles Orange für Kante ready */
-  .bereit-knopf { background: #7A1A0E; color: var(--offwhite); }
-  .kante-knopf { background: #FFB38A; color: var(--schwarz); }
+  /* Status: Ski ready grün, Kante ready in der Akzentfarbe */
+  .bereit-knopf { background: #3ecf6e; color: var(--schwarz); }
+  .kante-knopf { background: var(--orange); color: var(--schwarz); }
   .knopf-paar > * { flex: 1 1 0; }
   @media (max-width: 600px) {
     .knopf-paar { flex-direction: column; }
@@ -208,7 +208,7 @@
     transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
   }
   .ski:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
-  .ski.bereit { border-color: #7A1A0E; }
+  .ski.bereit { border-color: #3ecf6e; }
   .ski.aktiv { outline: 1.5px solid var(--offwhite); outline-offset: 3px; }
   .ski-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; cursor: pointer; }
   .ski-name { font-weight: 700; font-size: 1.02rem; letter-spacing: .01em; }
@@ -216,8 +216,6 @@
   .ski-meta { color: var(--muted); font-size: .8rem; }
   .ski-bereit {
     display: inline-block;
-    background: #7A1A0E;
-    color: var(--offwhite);
     font-size: .68rem;
     font-weight: 700;
     letter-spacing: .08em;
@@ -225,7 +223,10 @@
     border-radius: 6px;
     margin-right: 4px;
     vertical-align: middle;
+    color: var(--muted);
+    border: 1px solid var(--linie);
   }
+  .ski.aktiv .ski-bereit { color: #3ecf6e; border-color: #3ecf6e; }
 
   svg { width: 100%; height: auto; display: block; overflow: visible; }
   .baseline { stroke: var(--linie); stroke-width: 2; }
