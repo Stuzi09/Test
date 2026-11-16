@@ -834,9 +834,69 @@ function zeigeVerlauf(key, ski, eigene) {
   }
 }
 
+// Formular zum Ändern eines Eintrags. Die Art (Wachsen, Kanten, Skifahren) bleibt gleich.
+function bearbeiteEintrag(key, ski, e) {
+  const box = UI[key].detail;
+  box.innerHTML = '';
+  const datum = h('input', { class: 'feld', type: 'date', value: e.datum });
+  const bewertung = h('select', { class: 'feld' },
+    [1, 2, 3, 4, 5].map(n => h('option', { value: String(n), selected: n === e.bewertung ? true : null }, String(n))));
+  const notiz = h('input', { class: 'feld', type: 'text', maxlength: '120', value: e.notiz || '' });
+
+  let artFeld;
+  if (e.art === 'wachsen') {
+    artFeld = h('select', { class: 'feld' },
+      state.wachse.filter(w => w.aktiv || w.id === e.wachsId).map(w =>
+        h('option', { value: w.id, selected: w.id === e.wachsId ? true : null }, `${w.marke} · ${w.name}`)));
+  } else if (e.art === 'kanten') {
+    artFeld = h('select', { class: 'feld' },
+      Object.entries(KANTEN_OPTIONEN).map(([id, name]) =>
+        h('option', { value: id, selected: id === e.kanten ? true : null }, name)));
+  } else {
+    const gewaehlt = (e.fahrten && e.fahrten.arten) || [];
+    artFeld = h('div', {},
+      h('div', { class: 'checkgruppe' },
+        FAHRTARTEN.map(f => h('label', { class: 'check' },
+          h('input', { type: 'checkbox', value: f.id, checked: gewaehlt.includes(f.id) ? true : null, 'data-fahrt': '1' }),
+          f.name))),
+      h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
+      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: String((e.fahrten && e.fahrten.abfahrten) || 0), 'data-abf': '1' }));
+  }
+
+  box.append(
+    h('div', { style: 'font-weight:600' }, `${ski.name} · ${ARTEN[e.art]} bearbeiten`),
+    h('label', { class: 'lbl' }, 'Tag'), datum,
+    h('label', { class: 'lbl' }, e.art === 'wachsen' ? 'Wachs' : e.art === 'kanten' ? 'Kanten' : 'Fahrten'), artFeld,
+    h('label', { class: 'lbl' }, 'Bewertung (1 schwach bis 5 gut)'), bewertung,
+    h('label', { class: 'lbl' }, 'Notiz'), notiz,
+    h('div', { class: 'zeile' },
+      h('button', {
+        class: 'knopf', type: 'button',
+        onclick: () => {
+          e.datum = datum.value || e.datum;
+          e.bewertung = Number(bewertung.value);
+          e.notiz = notiz.value.trim();
+          if (e.art === 'wachsen') {
+            e.wachsId = artFeld.value;
+          } else if (e.art === 'kanten') {
+            e.kanten = artFeld.value;
+          } else {
+            e.fahrten = {
+              arten: [...artFeld.querySelectorAll('[data-fahrt]:checked')].map(c => c.value),
+              abfahrten: Math.max(0, Math.round(Number(artFeld.querySelector('[data-abf]').value) || 0))
+            };
+          }
+          speichern();
+          aktualisiere(key);
+          UI[key].detail.textContent = 'Eintrag geändert.';
+        }
+      }, 'Speichern'),
+      h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeDetail(key, ski, e, null) }, 'Abbrechen')));
+}
+
 function zeigeDetail(key, ski, e, punkt) {
   document.querySelectorAll('.dot.aktiv-punkt').forEach(n => n.classList.remove('aktiv-punkt'));
-  punkt.classList.add('aktiv-punkt');
+  if (punkt) punkt.classList.add('aktiv-punkt');
 
   const box = UI[key].detail;
   box.innerHTML = '';
@@ -862,6 +922,7 @@ function zeigeDetail(key, ski, e, punkt) {
     box.append(h('div', {}, h('span', { class: 'k' }, k + ': '), v));
   }
   box.append(h('div', { class: 'zeile' },
+    h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e) }, 'Bearbeiten'),
     h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => eintragLoeschen(key, e) }, 'Eintrag löschen')));
 }
 
