@@ -377,17 +377,6 @@ function baueHome() {
       h('h2', {}, 'Meine Wachse'),
       h('p', { class: 'beschreibung' }, 'Nur aktive Wachse werden empfohlen und in den Einträgen angeboten.'),
       homeUI.wachsListe
-    ),
-    h('div', { class: 'panel' },
-      h('h2', {}, 'Daten'),
-      h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: exportieren }, 'Exportieren'),
-        h('label', { class: 'knopf-sekundaer', style: 'cursor:pointer' },
-          'Importieren',
-          h('input', { type: 'file', accept: 'application/json', style: 'display:none', onchange: importVonDatei })),
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: zuruecksetzen }, 'Zurücksetzen')
-      ),
-      homeUI.meldung
     )
   );
 }
