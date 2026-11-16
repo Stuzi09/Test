@@ -898,7 +898,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       }
     },
       h('span', { class: 'ski-name' }, ski.name,
-        ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' Nummer ' + ski.nummer) : null),
+        ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null),
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY · ') : null,
         eigene.length + ' Einträge' + (ski.nummer !== undefined && ski.nummer !== null ? ' · Nr. ' + ski.nummer : '') + (ski.steinski ? ' · Steinski' : '')));
