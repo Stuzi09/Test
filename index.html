@@ -528,7 +528,11 @@ function baueDisziplin(d) {
 
   // Neuer Ski
   ui.neuName = h('input', { class: 'feld', type: 'text', placeholder: 'Name, z. B. Ski E', maxlength: '40' });
-  ui.neuLaenge = h('input', { class: 'feld', type: 'number', placeholder: 'Länge in cm', min: '100', max: '230', step: '1' });
+  ui.neuNummer = h('select', { class: 'feld' },
+    Array.from({ length: 11 }, (_, i) => h('option', { value: String(i) }, String(i))));
+  ui.neuDisziplin = h('select', { class: 'feld' },
+    DISZIPLINEN.map(x => h('option', { value: x.key, selected: x.key === d.key ? true : null }, x.titel)));
+  ui.neuStein = h('input', { type: 'checkbox' });
 
   // Eintrag erfassen
   ui.datum = h('input', { class: 'feld', type: 'date', value: heuteISO() });
@@ -580,7 +584,11 @@ function baueDisziplin(d) {
     h('div', { class: 'panel' },
       h('h2', {}, 'Neuer Ski'),
       ui.neuName,
-      ui.neuLaenge,
+      h('label', { class: 'lbl' }, 'Nummer (0 bis 10)'),
+      ui.neuNummer,
+      h('label', { class: 'lbl' }, 'Disziplin'),
+      ui.neuDisziplin,
+      h('label', { class: 'check', style: 'margin-top:10px' }, ui.neuStein, 'Steinski'),
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
     ),
@@ -644,6 +652,12 @@ function zeigeArtFelder(key) {
   }
 }
 
+// Name mit Nummer und Steinski-Hinweis
+function skiBeschriftung(s) {
+  const nr = s.nummer !== undefined && s.nummer !== null ? ' · Nr. ' + s.nummer : '';
+  return s.name + nr + (s.steinski ? ' (Steinski)' : '');
+}
+
 // Stellt die Auswahl, die Knöpfe und den Zeitstrahl einer Disziplin auf den aktuellen Stand.
 function aktualisiere(key) {
   const ui = UI[key];
@@ -654,7 +668,7 @@ function aktualisiere(key) {
   ui.skiAuswahl.innerHTML = '';
   if (!liste.length) ui.skiAuswahl.append(h('option', { value: '' }, 'Noch kein Ski'));
   for (const s of liste) {
-    ui.skiAuswahl.append(h('option', { value: s.id }, s.name + (s.laenge ? ' · ' + s.laenge + ' cm' : '')));
+    ui.skiAuswahl.append(h('option', { value: s.id }, skiBeschriftung(s)));
   }
   ui.skiAuswahl.value = aktiv ? aktiv.id : '';
 
@@ -698,14 +712,20 @@ function skiHinzufuegen(key) {
     ui.skiMeldung.textContent = 'Bitte einen Namen eingeben.';
     return;
   }
-  const laenge = Number(ui.neuLaenge.value) || null;
-  const ski = { id: neueId(), name, laenge, disziplin: key, bereitSeit: null };
+  const ski = {
+    id: neueId(),
+    name,
+    nummer: Number(ui.neuNummer.value),
+    disziplin: ui.neuDisziplin.value,
+    steinski: ui.neuStein.checked,
+    bereitSeit: null
+  };
   state.skis.push(ski);
-  aktuellerSki[key] = ski.id;
+  aktuellerSki[ski.disziplin] = ski.id;
   ui.neuName.value = '';
-  ui.neuLaenge.value = '';
+  ui.neuStein.checked = false;
   speichern();
-  aktualisiere(key);
+  alleAktualisieren();
   ui.skiMeldung.textContent = name + ' angelegt.';
 }
 
@@ -861,7 +881,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       h('span', { class: 'ski-name' }, ski.name),
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY · ') : null,
-        eigene.length + ' Einträge' + (ski.laenge ? ' · ' + ski.laenge + ' cm' : '')));
+        eigene.length + ' Einträge' + (ski.nummer !== undefined && ski.nummer !== null ? ' · Nr. ' + ski.nummer : '') + (ski.steinski ? ' · Steinski' : '')));
     box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
