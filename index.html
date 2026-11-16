@@ -520,6 +520,7 @@ function baueDisziplin(d) {
   });
   ui.bereitKnopf = h('button', { class: 'knopf', type: 'button', onclick: () => toggleBereit(d.key) });
   ui.skiEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiEntfernen(d.key) }, 'Ski entfernen');
+  ui.entfernAuswahl = h('select', { class: 'feld' });
   ui.bereitText = h('div', { class: 'hinweis' });
   ui.skiMeldung = h('div', { class: 'hinweis' });
 
@@ -579,8 +580,14 @@ function baueDisziplin(d) {
       ui.neuName,
       ui.neuLaenge,
       h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'),
-        ui.skiEntfernen)
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiHinzufuegen(d.key) }, 'Ski hinzufügen'))
+    ),
+
+    h('div', { class: 'panel' },
+      h('h2', {}, 'Ski entfernen'),
+      h('label', { class: 'lbl' }, 'Welcher Ski'),
+      ui.entfernAuswahl,
+      h('div', { class: 'zeile' }, ui.skiEntfernen)
     )
   );
 
@@ -648,6 +655,12 @@ function aktualisiere(key) {
   }
   ui.skiAuswahl.value = aktiv ? aktiv.id : '';
 
+  ui.entfernAuswahl.innerHTML = '';
+  for (const s of liste) {
+    ui.entfernAuswahl.append(h('option', { value: s.id }, s.name));
+  }
+  ui.entfernAuswahl.value = aktiv ? aktiv.id : '';
+
   const hatSki = Boolean(aktiv);
   ui.bereitKnopf.disabled = !hatSki;
   ui.skiEntfernen.disabled = !hatSki;
@@ -694,7 +707,7 @@ function skiHinzufuegen(key) {
 }
 
 function skiEntfernen(key) {
-  const ski = aktiverSki(key);
+  const ski = state.skis.find(s => s.id === UI[key].entfernAuswahl.value);
   if (!ski) return;
   if (!confirm(ski.name + ' und alle zugehörigen Einträge löschen?')) return;
   state.skis = state.skis.filter(s => s.id !== ski.id);
