@@ -170,9 +170,7 @@ function baueVolaWachse() {
   for (const typ of ['fluessig', 'hart']) {
     for (const linie of ['LM', 'HM', 'LMMOLY', 'HMMOLY']) {
       for (const farbe of Object.keys(VOLA_ZONE_NAMEN)) {
-        // Moly ist standardmässig aus, da nur zwei Farben pro Linie vorhanden sind
-        const aktiv = !linie.endsWith('MOLY');
-        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv, kategorie: 'rennwachs' });
+        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv: true, kategorie: 'rennwachs' });
       }
     }
   }
