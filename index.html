@@ -346,7 +346,8 @@ function wachsrechnerStart() {
     schneeart: homeUI.schneeart.value
   };
   const typ = empfehleTyp(w);
-  const passende = aktiveWachse().filter(x => x.typ === typ);
+  // Der Wachsrechner empfiehlt nur Vola-Wachse
+  const passende = aktiveWachse().filter(x => x.typ === typ && x.marke === 'Vola');
   const titel = typ === 'hart' ? 'Hartwachs' : 'Flüssigwachs';
   const grund = (typ === 'hart' ? 'kalt und trocken' : 'nass oder warm') + ' (Platzhalter-Regel)';
 
@@ -356,7 +357,7 @@ function wachsrechnerStart() {
     h('div', { class: 'hinweis' }, `${w.schneeart}, ${grund}. Schneetemperatur ${w.schnee} °C.`),
     passende.length
       ? h('div', { class: 'hinweis' }, 'Aktiv: ' + passende.map(x => `${x.marke} ${x.name}`).join(', '))
-      : h('div', { class: 'hinweis' }, 'Kein aktives Wachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
+      : h('div', { class: 'hinweis' }, 'Kein aktives Vola-Wachs dieses Typs. Unter „Meine Wachse“ aktivieren.')
   );
 }
 
