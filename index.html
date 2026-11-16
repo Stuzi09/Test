@@ -610,7 +610,7 @@ function zeigeArtFelder(key) {
         h('div', {},
           h('label', { class: 'lbl' }, 'Basewachs'),
           h('select', { class: 'feld', 'data-feld': 'wachs-base' }, optionen('basewachs')))),
-      hatBase ? null : h('div', { class: 'hinweis' }, 'Basewachse sind noch nicht erfasst.')
+      ...(hatBase ? [] : [h('div', { class: 'hinweis' }, 'Basewachse sind noch nicht erfasst.')])
     );
   } else if (art === 'kanten') {
     ui.artFelder.append(
