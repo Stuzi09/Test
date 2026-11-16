@@ -288,18 +288,12 @@ function ladeState() {
       const daten = JSON.parse(roh);
       // Gespeicherte Fremdmarken durch die Wöhler-Wachse ersetzen
       if (Array.isArray(daten.wachse)) {
-        // Typ (Flüssig/Hart) aus den Vorgaben übernehmen
-        daten.wachse.forEach(w => {
-          const d = DEMO.wachse.find(x => x.name === w.name);
-          if (d) {
-            w.typ = d.typ;
-            w.kategorie = d.kategorie;
-          }
+        // Wachsliste immer aus der Vorgabe aufbauen, gespeichert bleiben nur die Häkchen (aktiv)
+        daten.wachse = DEMO.wachse.map(d => {
+          const alt = daten.wachse.find(w => w.name === d.name && w.typ === d.typ && w.kategorie === d.kategorie)
+            || daten.wachse.find(w => w.name === d.name);
+          return { ...d, aktiv: alt ? alt.aktiv : d.aktiv };
         });
-      }
-      if (Array.isArray(daten.wachse) && (daten.wachse.length !== DEMO.wachse.length
-          || daten.wachse.some(w => !DEMO.wachse.some(d => d.name === w.name)))) {
-        daten.wachse = kopie(DEMO.wachse);
       }
       return daten;
     }
