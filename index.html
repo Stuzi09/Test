@@ -1044,6 +1044,12 @@ function eintragLoeschen(key, e) {
 // 8. Zeitstrahl
 // ============================================================
 
+// Skis nach Nummer sortieren. Ohne Nummer kommen sie ans Ende, in ihrer bisherigen Reihenfolge.
+function nachNummer(liste) {
+  const wert = s => (s.nummer === undefined || s.nummer === null ? 99 : s.nummer);
+  return [...liste].sort((a, b) => wert(a) - wert(b));
+}
+
 // Zeichnet je Ski eine Zeile auf einer gemeinsamen Datumsachse.
 // Form = Art (Kreis Wachsen, Quadrat Kanten, Dreieck Skifahren), Farbe = Bewertung.
 function zeichneZeitstrahl(key, liste, aktiv) {
@@ -1075,7 +1081,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
     m.setMonth(m.getMonth() + 1);
   }
 
-  for (const ski of liste) {
+  for (const ski of nachNummer(liste)) {
     const eigene = eintraege
       .filter(e => e.ski === ski.id)
       .sort((a, b) => a.datum.localeCompare(b.datum));
