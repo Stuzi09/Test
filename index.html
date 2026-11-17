@@ -1024,11 +1024,15 @@ function eintragSpeichern(key) {
   }
 
   state.eintraege.push(eintrag);
+  // Nach einer Ausfahrt ist der Ski nicht mehr bereit
+  const bereitZurueckgesetzt = eintrag.art === 'skifahren' && Boolean(ski.bereitSeit);
+  if (bereitZurueckgesetzt) ski.bereitSeit = null;
   speichern();
   ui.notiz.value = '';
   aktualisiere(key);
   ui.eintragMeldung.className = 'bestaetigt';
-  ui.eintragMeldung.textContent = `Gespeichert: ${ski.name}, ${datumDE(eintrag.datum)}, ${ARTEN[eintrag.art]}.`;
+  ui.eintragMeldung.textContent = `Gespeichert: ${ski.name}, ${datumDE(eintrag.datum)}, ${ARTEN[eintrag.art]}.` +
+    (bereitZurueckgesetzt ? ' Ski ready wurde zurückgesetzt.' : '');
 }
 
 function eintragLoeschen(key, e) {
