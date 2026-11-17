@@ -213,6 +213,7 @@
   .ski-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; cursor: pointer; }
   .ski-name { font-weight: 700; font-size: 1.02rem; letter-spacing: .01em; }
   .ski-name strong { color: var(--orange); font-size: 1.15rem; }
+  .ski-datum { color: var(--muted); font-weight: 400; font-size: .85rem; }
   .ski-meta { color: var(--muted); font-size: .8rem; }
   .ski-bereit {
     display: inline-block;
@@ -1138,7 +1139,8 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       }
     },
       h('span', { class: 'ski-name' }, ski.name,
-        ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null),
+        ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null,
+        ski.monat && ski.jahr ? h('span', { class: 'ski-datum' }, ' · ' + String(ski.monat).padStart(2, '0') + '/' + ski.jahr) : null),
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY') : null,
         eigene.length + ' Einträge' + (ski.steinski ? ' · Steinski' : '')));
