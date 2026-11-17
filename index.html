@@ -1099,7 +1099,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null),
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY') : null,
-        eigene.length + ' Einträge' + (ski.nummer !== undefined && ski.nummer !== null ? ' · Nr. ' + ski.nummer : '') + (ski.steinski ? ' · Steinski' : '')));
+        eigene.length + ' Einträge' + (ski.steinski ? ' · Steinski' : '')));
     box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
