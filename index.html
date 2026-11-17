@@ -738,6 +738,9 @@ function baueDisziplin(d) {
     [1, 2, 3, 4, 5].map(n => h('option', { value: String(n), selected: n === 3 ? true : null }, String(n))));
   ui.notiz = h('input', { class: 'feld', type: 'text', maxlength: '120', placeholder: 'Notiz, optional' });
   ui.eintragMeldung = h('div', { class: 'hinweis' });
+  ui.eintragSkis = h('div', { class: 'checkgruppe' });
+  ui.skiWahl = new Set();
+  ui.skiWahlFuer = null;
   ui.speichern = h('button', { class: 'knopf', type: 'button', onclick: () => eintragSpeichern(d.key) }, 'Eintrag speichern');
 
   // Zeitstrahl und Detail
@@ -765,6 +768,8 @@ function baueDisziplin(d) {
       ui.skiMeldung,
       h('hr', { class: 'trenner' }),
       h('h2', {}, 'Eintrag erfassen'),
+      h('label', { class: 'lbl' }, 'Ski (mehrere möglich)'),
+      ui.eintragSkis,
       h('label', { class: 'lbl' }, 'Tag'),
       ui.datum,
       h('label', { class: 'lbl' }, 'Art'),
@@ -870,6 +875,23 @@ function aktualisiere(key) {
     ui.skiAuswahl.append(h('option', { value: s.id }, skiBeschriftung(s)));
   }
   ui.skiAuswahl.value = aktiv ? aktiv.id : '';
+
+  // Skis für den Eintrag: die Auswahl bleibt, bis oben ein anderer Ski gewählt wird
+  if (aktiv && ui.skiWahlFuer !== aktiv.id) {
+    ui.skiWahl = new Set([aktiv.id]);
+    ui.skiWahlFuer = aktiv.id;
+  }
+  ui.skiWahl = new Set([...ui.skiWahl].filter(id => liste.some(x => x.id === id)));
+  ui.eintragSkis.innerHTML = '';
+  for (const x of liste) {
+    ui.eintragSkis.append(h('label', { class: 'check' },
+      h('input', {
+        type: 'checkbox',
+        checked: ui.skiWahl.has(x.id) ? true : null,
+        onchange: ev => { if (ev.target.checked) ui.skiWahl.add(x.id); else ui.skiWahl.delete(x.id); }
+      }),
+      skiBeschriftung(x)));
+  }
 
   ui.entfernAuswahl.innerHTML = '';
   for (const s of liste) {
@@ -983,56 +1005,72 @@ function eintragSchluessel(e) {
 function eintragSpeichern(key) {
   const ui = UI[key];
   ui.eintragMeldung.className = 'hinweis';
-  const ski = aktiverSki(key);
-  if (!ski) return;
+  const ziele = skisDerDisziplin(key).filter(x => ui.skiWahl.has(x.id));
+  if (!ziele.length) {
+    ui.eintragMeldung.textContent = 'Bitte mindestens einen Ski auswählen.';
+    return;
+  }
 
-  const eintrag = {
-    id: neueId(),
-    ski: ski.id,
+  const basis = {
     datum: ui.datum.value,
     art: ui.art.value,
     bewertung: Number(ui.bewertung.value),
     notiz: ui.notiz.value.trim()
   };
-
-  if (!eintrag.datum) {
+  if (!basis.datum) {
     ui.eintragMeldung.textContent = 'Bitte ein Datum wählen.';
     return;
   }
 
-  if (eintrag.art === 'wachsen') {
+  if (basis.art === 'wachsen') {
     const wachsId = ui.artFelder.querySelector('[data-feld="wachs-rennen"]').value
       || ui.artFelder.querySelector('[data-feld="wachs-base"]').value;
     if (!wachsById(wachsId)) {
       ui.eintragMeldung.textContent = 'Bitte zuerst ein aktives Wachs auswählen.';
       return;
     }
-    eintrag.wachsId = wachsId;
-  } else if (eintrag.art === 'kanten') {
-    eintrag.kanten = ui.artFelder.querySelector('[data-feld="kanten"]').value;
+    basis.wachsId = wachsId;
+  } else if (basis.art === 'kanten') {
+    basis.kanten = ui.artFelder.querySelector('[data-feld="kanten"]').value;
   } else {
     const arten = [...ui.artFelder.querySelectorAll('[data-feld="fahrt"]:checked')].map(c => c.value);
     const abfahrten = Math.max(0, Math.round(Number(ui.artFelder.querySelector('[data-feld="abfahrten"]').value) || 0));
-    eintrag.fahrten = { arten, abfahrten };
+    basis.fahrten = { arten, abfahrten };
   }
 
-  const doppelt = state.eintraege.some(x =>
-    x.ski === ski.id && x.datum === eintrag.datum && eintragSchluessel(x) === eintragSchluessel(eintrag));
-  if (doppelt) {
+  const gespeichert = [];
+  const schonDa = [];
+  const bereitZurueck = [];
+  for (const ski of ziele) {
+    const eintrag = { id: neueId(), ski: ski.id, ...kopie(basis) };
+    const doppelt = state.eintraege.some(x =>
+      x.ski === ski.id && x.datum === eintrag.datum && eintragSchluessel(x) === eintragSchluessel(eintrag));
+    if (doppelt) {
+      schonDa.push(ski);
+      continue;
+    }
+    state.eintraege.push(eintrag);
+    gespeichert.push(ski);
+    // Nach einer Ausfahrt ist der Ski nicht mehr bereit
+    if (eintrag.art === 'skifahren' && ski.bereitSeit) {
+      ski.bereitSeit = null;
+      bereitZurueck.push(ski);
+    }
+  }
+
+  if (!gespeichert.length) {
     ui.eintragMeldung.textContent = 'Diesen Eintrag gibt es für diesen Tag schon, er wurde nicht noch einmal gespeichert.';
     return;
   }
 
-  state.eintraege.push(eintrag);
-  // Nach einer Ausfahrt ist der Ski nicht mehr bereit
-  const bereitZurueckgesetzt = eintrag.art === 'skifahren' && Boolean(ski.bereitSeit);
-  if (bereitZurueckgesetzt) ski.bereitSeit = null;
   speichern();
   ui.notiz.value = '';
   aktualisiere(key);
   ui.eintragMeldung.className = 'bestaetigt';
-  ui.eintragMeldung.textContent = `Gespeichert: ${ski.name}, ${datumDE(eintrag.datum)}, ${ARTEN[eintrag.art]}.` +
-    (bereitZurueckgesetzt ? ' Ski ready wurde zurückgesetzt.' : '');
+  let text = `Gespeichert: ${gespeichert.map(skiBeschriftung).join(', ')}, ${datumDE(basis.datum)}, ${ARTEN[basis.art]}.`;
+  if (schonDa.length) text += ` Schon vorhanden, nicht noch einmal gespeichert: ${schonDa.map(skiBeschriftung).join(', ')}.`;
+  if (bereitZurueck.length) text += ' Ski ready wurde zurückgesetzt.';
+  ui.eintragMeldung.textContent = text;
 }
 
 function eintragLoeschen(key, e) {
