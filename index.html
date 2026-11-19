@@ -1102,6 +1102,7 @@ function baueEintragsListe(key) {
       h('div', { class: 'eintrag-kopf' }, `${skiBeschriftung(ski)} · ${datumDE(e.datum)} · ${ARTEN[e.art]}`),
       h('div', { class: 'hinweis' }, eintragKurz(e)),
       h('div', { class: 'zeile' },
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeEintragFenster(key, ski, e) }, 'Öffnen'),
         h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e, zeile) }, 'Bearbeiten'),
         h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => bestaetigeInline(zeile, 'Diesen Eintrag löschen?', () => {
           state.eintraege = state.eintraege.filter(x => x.id !== e.id);
@@ -1594,6 +1595,7 @@ function zeigeDetail(key, ski, e, punkt) {
     box.append(h('div', {}, h('span', { class: 'k' }, k + ': '), v));
   }
   box.append(h('div', { class: 'zeile' },
+    h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeEintragFenster(key, ski, e) }, 'Öffnen'),
     h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e) }, 'Bearbeiten'),
     h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => eintragLoeschen(key, e) }, 'Eintrag löschen')));
 }
