@@ -573,6 +573,8 @@ function aktiverSki(key) {
   return ski || null;
 }
 
+// Skis, deren Zeitstrahl schon geöffnet wurde. Erst dann erscheinen Bearbeiten und Löschen.
+const zeitstrahlGeoeffnet = new Set();
 const UI = {};            // Oberflächenelemente pro Disziplin
 const homeUI = {};        // Oberflächenelemente der Startseite
 const aktuellerSki = {};  // Disziplin -> ID des gewählten Skis
@@ -1066,6 +1068,11 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     .sort((a, b) => a.datum.localeCompare(b.datum));
   let idx = alle.findIndex(x => x.id === startEintrag.id);
   if (idx < 0) return;
+  // Ab jetzt sind Bearbeiten und Löschen für diesen Ski sichtbar
+  if (!zeitstrahlGeoeffnet.has(ski.id)) {
+    zeitstrahlGeoeffnet.add(ski.id);
+    if (UI[key]) aktualisiere(key);
+  }
 
   const hintergrund = h('div', { class: 'fenster-hintergrund' });
   const karte = h('div', { class: 'fenster' });
@@ -1495,12 +1502,14 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         h('button', { class: 'icon-knopf', type: 'button', title: 'Zeitstrahl öffnen', 'aria-label': 'Zeitstrahl öffnen',
           disabled: eigene.length === 0,
           onclick: ev => { ev.stopPropagation(); zeigeEintragFenster(key, ski, eigene[eigene.length - 1]); } }, oeffnenIcon()),
-        h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
-          disabled: eigene.length === 0,
-          onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'bearbeiten'); } }, stiftIcon()),
-        h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
-          disabled: eigene.length === 0,
-          onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'loeschen'); } }, muellIcon())));
+        ...(zeitstrahlGeoeffnet.has(ski.id) ? [
+          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
+            disabled: eigene.length === 0,
+            onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'bearbeiten'); } }, stiftIcon()),
+          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
+            disabled: eigene.length === 0,
+            onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'loeschen'); } }, muellIcon())
+        ] : [])));
     box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
