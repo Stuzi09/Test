@@ -293,6 +293,22 @@
     cursor: pointer;
   }
   .fenster-kreuz:hover { background: rgba(242, 240, 235, .08); }
+  .icon-knopf {
+    flex: 0 0 40px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1.5px solid var(--offwhite);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--offwhite);
+    cursor: pointer;
+  }
+  .icon-knopf:hover { background: rgba(242, 240, 235, .08); }
+  .zeile > .icon-knopf { flex: 0 0 40px; }
   .fenster-zeitstrahl { margin: 8px 0 14px; }
   .fenster .zeile > * { flex: 1 1 0; }
   .trenner { border: 0; border-top: 1px solid var(--linie); margin: 16px 0; }
@@ -948,6 +964,24 @@ function skiBeschriftung(s) {
   return s.name + nr + datum + (s.steinski ? ' (Steinski)' : '');
 }
 
+// Liniensymbol „in Fenster öffnen“, 1,5 px Strich
+function oeffnenIcon() {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '18');
+  svg.setAttribute('height', '18');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '1.5');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  svg.setAttribute('aria-hidden', 'true');
+  const pfad = document.createElementNS(SVG_NS, 'path');
+  pfad.setAttribute('d', 'M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4');
+  svg.append(pfad);
+  return svg;
+}
+
 // Langes Drücken (ca. 0,5 s) auf einen Eintrag öffnet das Eintrag-Fenster.
 // Ein kurzes Antippen oder Scrollen löst nichts aus.
 function langDruecken(element, aktion) {
@@ -1102,7 +1136,7 @@ function baueEintragsListe(key) {
       h('div', { class: 'eintrag-kopf' }, `${skiBeschriftung(ski)} · ${datumDE(e.datum)} · ${ARTEN[e.art]}`),
       h('div', { class: 'hinweis' }, eintragKurz(e)),
       h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeEintragFenster(key, ski, e) }, 'Öffnen'),
+        h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag im Fenster öffnen', 'aria-label': 'Eintrag im Fenster öffnen', onclick: () => zeigeEintragFenster(key, ski, e) }, oeffnenIcon()),
         h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e, zeile) }, 'Bearbeiten'),
         h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => bestaetigeInline(zeile, 'Diesen Eintrag löschen?', () => {
           state.eintraege = state.eintraege.filter(x => x.id !== e.id);
@@ -1595,7 +1629,7 @@ function zeigeDetail(key, ski, e, punkt) {
     box.append(h('div', {}, h('span', { class: 'k' }, k + ': '), v));
   }
   box.append(h('div', { class: 'zeile' },
-    h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeEintragFenster(key, ski, e) }, 'Öffnen'),
+    h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag im Fenster öffnen', 'aria-label': 'Eintrag im Fenster öffnen', onclick: () => zeigeEintragFenster(key, ski, e) }, oeffnenIcon()),
     h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e) }, 'Bearbeiten'),
     h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => eintragLoeschen(key, e) }, 'Eintrag löschen')));
 }
