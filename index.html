@@ -353,7 +353,7 @@ const TAG = 86400000;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const W = 600, H = 60, PAD = 24, BASE_Y = 30;
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-const FARBEN = ['#5c5c5c', '#8a8a8a', '#bdbdbd', '#F2F0EB', '#FF4D1A']; // Bewertung 1 bis 5
+const PUNKT_FARBE = '#F2F0EB';
 
 const DISZIPLINEN = [
   { key: 'slalom', titel: 'Slalom', text: 'Kurze Tore, enge Radien, viel Kantenarbeit.' },
@@ -816,8 +816,6 @@ function baueDisziplin(d) {
   ui.art = h('select', { class: 'feld', onchange: () => zeigeArtFelder(d.key) },
     Object.entries(ARTEN).map(([id, name]) => h('option', { value: id }, name)));
   ui.artFelder = h('div');
-  ui.bewertung = h('select', { class: 'feld' },
-    [1, 2, 3, 4, 5].map(n => h('option', { value: String(n), selected: n === 3 ? true : null }, String(n))));
   ui.notiz = h('input', { class: 'feld', type: 'text', maxlength: '120', placeholder: 'Notiz, optional' });
   ui.eintragMeldung = h('div', { class: 'hinweis' });
   ui.eintragSkis = h('div', { class: 'checkgruppe' });
@@ -836,7 +834,7 @@ function baueDisziplin(d) {
 
     h('div', { class: 'panel' },
       h('h2', {}, 'Zeitstrahl'),
-      h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren   Farbe = Bewertung'),
+      h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren'),
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
@@ -1038,7 +1036,6 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
     const cx = x(zeitpunkt(e.datum));
     gezaehlt[e.datum] = (gezaehlt[e.datum] || 0) + 1;
     const cy = BASE_Y - 8 - (gezaehlt[e.datum] - 1) * 14;
-    const bewertung = Math.min(Math.max(Number(e.bewertung) || 3, 1), 5);
     let punkt;
     if (e.art === 'kanten') {
       punkt = svgEl('rect', { x: cx - 6, y: cy - 6, width: 12, height: 12 }, svg);
@@ -1048,7 +1045,7 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
       punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
     }
     punkt.setAttribute('class', 'dot' + (e.id === aktuell.id ? ' aktiv-punkt' : ''));
-    punkt.setAttribute('fill', FARBEN[bewertung - 1]);
+    punkt.setAttribute('fill', PUNKT_FARBE);
     punkt.setAttribute('tabindex', '0');
     punkt.addEventListener('click', () => aufWahl(e));
   }
@@ -1103,7 +1100,6 @@ function zeigeEintragFenster(key, ski, startEintrag) {
       h('div', { class: 'panel' },
         h('div', { class: 'eintrag-kopf' }, `${datumDE(e.datum)} · ${ARTEN[e.art]}`),
         h('div', { class: 'zeile' }, eintragKurz(e)),
-        h('div', { class: 'hinweis' }, `Bewertung ${e.bewertung} / 5`),
         ...(e.notiz ? [h('div', { class: 'hinweis' }, e.notiz)] : [])),
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === 0, onclick: () => wechsel(-1) }, '◀ Zurück'),
@@ -1302,7 +1298,6 @@ function eintragSpeichern(key) {
   const basis = {
     datum: ui.datum.value,
     art: ui.art.value,
-    bewertung: Number(ui.bewertung.value),
     notiz: ui.notiz.value.trim()
   };
   if (!basis.datum) {
@@ -1384,7 +1379,7 @@ function nachNummer(liste) {
 }
 
 // Zeichnet je Ski eine Zeile auf einer gemeinsamen Datumsachse.
-// Form = Art (Kreis Wachsen, Quadrat Kanten, Dreieck Skifahren), Farbe = Bewertung.
+// Form = Art (Kreis Wachsen, Quadrat Kanten, Dreieck Skifahren).
 function zeichneZeitstrahl(key, liste, aktiv) {
   const box = UI[key].zeitstrahl;
   box.innerHTML = '';
@@ -1458,7 +1453,6 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       const cx = x(zeitpunkt(e.datum));
       gezaehlt[e.datum] = (gezaehlt[e.datum] || 0) + 1;
       const cy = BASE_Y - 8 - (gezaehlt[e.datum] - 1) * 14;
-      const bewertung = Math.min(Math.max(Number(e.bewertung) || 3, 1), 5);
 
       let punkt;
       if (e.art === 'kanten') {
@@ -1469,7 +1463,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
       }
       punkt.setAttribute('class', 'dot');
-      punkt.setAttribute('fill', FARBEN[bewertung - 1]);
+      punkt.setAttribute('fill', PUNKT_FARBE);
       punkt.setAttribute('tabindex', '0');
       const oeffnen = ev => {
         ev.stopPropagation(); // nicht zusätzlich den ganzen Verlauf öffnen
@@ -1512,7 +1506,7 @@ function zeigeVerlauf(key, ski, eigene) {
   }
   for (const e of [...eigene].reverse()) {
     box.append(h('div', { style: 'margin-top:10px; padding-top:8px; border-top:1px solid var(--line)' },
-      h('div', {}, h('span', { class: 'k' }, datumDE(e.datum) + ' · ' + ARTEN[e.art] + ' · '), `Bewertung ${e.bewertung}/5`),
+      h('div', {}, h('span', { class: 'k' }, datumDE(e.datum) + ' · ' + ARTEN[e.art])),
       h('div', {}, eintragKurz(e)),
       e.notiz ? h('div', { class: 'k' }, e.notiz) : null
     ));
@@ -1524,8 +1518,6 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail) {
   const box = zielBox;
   box.innerHTML = '';
   const datum = h('input', { class: 'feld', type: 'date', value: e.datum });
-  const bewertung = h('select', { class: 'feld' },
-    [1, 2, 3, 4, 5].map(n => h('option', { value: String(n), selected: n === e.bewertung ? true : null }, String(n))));
   const notiz = h('input', { class: 'feld', type: 'text', maxlength: '120', value: e.notiz || '' });
 
   let artFeld;
@@ -1566,14 +1558,12 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail) {
     h('div', { style: 'font-weight:600' }, `${ski.name} · ${ARTEN[e.art]} bearbeiten`),
     h('label', { class: 'lbl' }, 'Tag'), datum,
     h('label', { class: 'lbl' }, e.art === 'wachsen' ? 'Wachs' : e.art === 'kanten' ? 'Kanten' : 'Fahrten'), artFeld,
-    h('label', { class: 'lbl' }, 'Bewertung (1 schwach bis 5 gut)'), bewertung,
     h('label', { class: 'lbl' }, 'Notiz'), notiz,
     h('div', { class: 'zeile' },
       h('button', {
         class: 'knopf', type: 'button',
         onclick: () => {
           e.datum = datum.value || e.datum;
-          e.bewertung = Number(bewertung.value);
           e.notiz = notiz.value.trim();
           if (e.art === 'wachsen') {
             e.wachsId = artFeld.value;
@@ -1621,7 +1611,6 @@ function zeigeDetail(key, ski, e, punkt) {
     if (laufNamen.length) zeilen.push(['Lauf', laufNamen.join(', ')]);
     if (e.fahrten && e.fahrten.ranking) zeilen.push(['Ranking', e.fahrten.ranking + ' / 10']);
   }
-  zeilen.push(['Bewertung', e.bewertung + ' / 5']);
   if (e.notiz) zeilen.push(['Notiz', e.notiz]);
 
   box.append(h('div', { style: 'font-weight:600' }, `${ski.name} · ${datumDE(e.datum)} · ${ARTEN[e.art]}`));
