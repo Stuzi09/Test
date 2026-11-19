@@ -255,6 +255,9 @@
   }
   .detail .k { color: var(--muted); }
   .leer { color: var(--muted); font-style: italic; }
+  .eintrag-zeile { border-top: 1px solid var(--linie); padding: 12px 0; }
+  .eintrag-zeile:first-child { border-top: 0; padding-top: 0; }
+  .eintrag-kopf { font-weight: 700; font-size: .95rem; }
   .trenner { border: 0; border-top: 1px solid var(--linie); margin: 16px 0; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -767,6 +770,7 @@ function baueDisziplin(d) {
   ui.eintragSkis = h('div', { class: 'checkgruppe' });
   ui.skiWahl = new Set();
   ui.skiWahlFuer = null;
+  ui.eintragsListe = h('div');
   ui.speichern = h('button', { class: 'knopf', type: 'button', onclick: () => eintragSpeichern(d.key) }, 'Eintrag speichern');
 
   // Zeitstrahl und Detail
@@ -784,6 +788,11 @@ function baueDisziplin(d) {
       ui.zeitstrahl,
       ui.detail,
       h('div', { class: 'zeile knopf-paar' }, ui.bereitKnopf, ui.kanteKnopf)
+    ),
+
+    h('div', { class: 'panel' },
+      h('h2', {}, 'Einträge'),
+      ui.eintragsListe
     ),
 
     h('div', { class: 'panel' },
@@ -902,6 +911,36 @@ function skiBeschriftung(s) {
   return s.name + nr + datum + (s.steinski ? ' (Steinski)' : '');
 }
 
+// Liste aller Einträge der Disziplin, neueste zuerst, mit Bearbeiten und Löschen
+function baueEintragsListe(key) {
+  const ui = UI[key];
+  if (!ui || !ui.eintragsListe) return;
+  const box = ui.eintragsListe;
+  box.textContent = '';
+  const skis = skisDerDisziplin(key);
+  const eintraege = state.eintraege
+    .filter(e => skis.some(s => s.id === e.ski))
+    .sort((a, b) => b.datum.localeCompare(a.datum));
+  if (!eintraege.length) {
+    box.append(h('div', { class: 'leer' }, 'Noch keine Einträge.'));
+    return;
+  }
+  for (const e of eintraege) {
+    const ski = skis.find(s => s.id === e.ski);
+    const zeile = h('div', { class: 'eintrag-zeile' },
+      h('div', { class: 'eintrag-kopf' }, `${skiBeschriftung(ski)} · ${datumDE(e.datum)} · ${ARTEN[e.art]}`),
+      h('div', { class: 'hinweis' }, eintragKurz(e)),
+      h('div', { class: 'zeile' },
+        h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e, zeile) }, 'Bearbeiten'),
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => bestaetigeInline(zeile, 'Diesen Eintrag löschen?', () => {
+          state.eintraege = state.eintraege.filter(x => x.id !== e.id);
+          speichern();
+          aktualisiere(key);
+        }) }, 'Löschen')));
+    box.append(zeile);
+  }
+}
+
 // Stellt die Auswahl, die Knöpfe und den Zeitstrahl einer Disziplin auf den aktuellen Stand.
 function aktualisiere(key) {
   const ui = UI[key];
@@ -960,6 +999,7 @@ function aktualisiere(key) {
   ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf';
 
   zeichneZeitstrahl(key, liste, aktiv);
+  baueEintragsListe(key);
 }
 
 function alleAktualisieren() {
@@ -1273,8 +1313,8 @@ function zeigeVerlauf(key, ski, eigene) {
 }
 
 // Formular zum Ändern eines Eintrags. Die Art (Wachsen, Kanten, Skifahren) bleibt gleich.
-function bearbeiteEintrag(key, ski, e) {
-  const box = UI[key].detail;
+function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail) {
+  const box = zielBox;
   box.innerHTML = '';
   const datum = h('input', { class: 'feld', type: 'date', value: e.datum });
   const bewertung = h('select', { class: 'feld' },
@@ -1343,10 +1383,10 @@ function bearbeiteEintrag(key, ski, e) {
           }
           speichern();
           aktualisiere(key);
-          UI[key].detail.textContent = 'Eintrag geändert.';
+          if (box === UI[key].detail) UI[key].detail.textContent = 'Eintrag geändert.';
         }
       }, 'Speichern'),
-      h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => zeigeDetail(key, ski, e, null) }, 'Abbrechen')));
+      h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => (box === UI[key].detail ? zeigeDetail(key, ski, e, null) : aktualisiere(key)) }, 'Abbrechen')));
 }
 
 function zeigeDetail(key, ski, e, punkt) {
