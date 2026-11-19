@@ -146,6 +146,8 @@
     font-size: 1rem;
   }
   .feld:focus { outline: 3px solid var(--blau); outline-offset: 1px; }
+  /* Datumsfeld: auf dem iPhone sonst breiter als die anderen Felder */
+  input[type="date"].feld { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; text-align: left; }
   .zeile { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .zeile > * { flex: 1 1 auto; }
 
