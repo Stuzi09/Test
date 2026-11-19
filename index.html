@@ -826,7 +826,6 @@ function baueDisziplin(d) {
   ui.eintragSkis = h('div', { class: 'checkgruppe' });
   ui.skiWahl = new Set();
   ui.skiWahlFuer = null;
-  ui.eintragsListe = h('div');
   ui.speichern = h('button', { class: 'knopf', type: 'button', onclick: () => eintragSpeichern(d.key) }, 'Eintrag speichern');
 
   // Zeitstrahl und Detail
@@ -844,11 +843,6 @@ function baueDisziplin(d) {
       ui.zeitstrahl,
       ui.detail,
       h('div', { class: 'zeile knopf-paar' }, ui.bereitKnopf, ui.kanteKnopf)
-    ),
-
-    h('div', { class: 'panel' },
-      h('h2', {}, 'Einträge'),
-      ui.eintragsListe
     ),
 
     h('div', { class: 'panel' },
@@ -1117,38 +1111,6 @@ function zeigeEintragFenster(key, ski, startEintrag) {
   zeichne();
 }
 
-// Liste aller Einträge der Disziplin, neueste zuerst, mit Bearbeiten und Löschen
-function baueEintragsListe(key) {
-  const ui = UI[key];
-  if (!ui || !ui.eintragsListe) return;
-  const box = ui.eintragsListe;
-  box.textContent = '';
-  const skis = skisDerDisziplin(key);
-  const eintraege = state.eintraege
-    .filter(e => skis.some(s => s.id === e.ski))
-    .sort((a, b) => b.datum.localeCompare(a.datum));
-  if (!eintraege.length) {
-    box.append(h('div', { class: 'leer' }, 'Noch keine Einträge.'));
-    return;
-  }
-  for (const e of eintraege) {
-    const ski = skis.find(s => s.id === e.ski);
-    const zeile = h('div', { class: 'eintrag-zeile' },
-      h('div', { class: 'eintrag-kopf' }, `${skiBeschriftung(ski)} · ${datumDE(e.datum)} · ${ARTEN[e.art]}`),
-      h('div', { class: 'hinweis' }, eintragKurz(e)),
-      h('div', { class: 'zeile' },
-        h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag im Fenster öffnen', 'aria-label': 'Eintrag im Fenster öffnen', onclick: () => zeigeEintragFenster(key, ski, e) }, oeffnenIcon()),
-        h('button', { class: 'knopf', type: 'button', onclick: () => bearbeiteEintrag(key, ski, e, zeile) }, 'Bearbeiten'),
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => bestaetigeInline(zeile, 'Diesen Eintrag löschen?', () => {
-          state.eintraege = state.eintraege.filter(x => x.id !== e.id);
-          speichern();
-          aktualisiere(key);
-        }) }, 'Löschen')));
-    box.append(zeile);
-    langDruecken(zeile, () => zeigeEintragFenster(key, ski, e));
-  }
-}
-
 // Liniensymbole (1,5 px Strich), für Bearbeiten und Löschen
 function liniensymbol(pfade) {
   const svg = document.createElementNS(SVG_NS, 'svg');
@@ -1295,7 +1257,6 @@ function aktualisiere(key) {
   ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf';
 
   zeichneZeitstrahl(key, liste, aktiv);
-  baueEintragsListe(key);
 }
 
 function alleAktualisieren() {
