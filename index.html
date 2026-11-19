@@ -5,57 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stuwax">
-<meta name="theme-color" content="#0F0F0F">
+<meta name="theme-color" content="#E9D9CA">
 <title>Stuwax</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <style>
-  /* Gestaltung nach den Vorgaben: Tiefschwarz, Off-White, Orangerot nur als Akzent */
+  /* Farben: Creme als Grund, Schwarz für Schrift, Linien und dunkle Flächen,
+     Blau als Akzent, Orange für „bereit“. Ecken eckig, Flächen ohne Verlauf. */
   :root {
-    --schwarz: #0F0F0F;
-    --offwhite: #F2F0EB;
-    --orange: #FF4D1A;
-    --orange-hell: #FF7A45;
-    --orange-pale: #FFB38A;
-    --linie: #2A2A2A;
-    --bg: var(--schwarz);
-    --panel: #1A1A1A;
-    --text: var(--offwhite);
-    --muted: rgba(242, 240, 235, .68);
-    --accent: var(--orange);
-    --line: var(--linie);
+    --creme: #E9D9CA;
+    --schwarz: #111111;
+    --blau: #4D6080;
+    --orange: #F4721E;
+    --text: var(--schwarz);
+    --muted: rgba(17, 17, 17, .74);
+    --linie: rgba(17, 17, 17, .22);
   }
   * { box-sizing: border-box; }
-  html { background: var(--schwarz); }
+  html { background: var(--creme); }
   body {
     margin: 0;
     min-height: 100vh;
-    background: linear-gradient(180deg, #0F0F0F 0%, #2A0E08 100%) no-repeat fixed;
+    background: var(--creme);
     color: var(--text);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
-  }
-  /* Weicher Lichtfleck hinter dem Inhalt */
-  body::before {
-    content: "";
-    position: fixed;
-    top: -20vh;
-    right: -25vw;
-    width: 70vmax;
-    height: 70vmax;
-    background: radial-gradient(circle, rgba(255, 77, 26, .18) 0%, rgba(255, 77, 26, 0) 65%);
-    filter: blur(30px);
-    pointer-events: none;
-    z-index: 0;
   }
 
   header {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--schwarz);
-    border-bottom: 1px solid var(--linie);
+    background: var(--creme);
+    border-bottom: 1.5px solid var(--schwarz);
     min-height: 88px;
-    padding: 0 24px;
+    padding: 0 16px;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -64,67 +50,92 @@
   }
   header.klein { min-height: 64px; }
   .logo {
-    font-weight: 800;
-    font-size: 1rem;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: var(--offwhite);
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin-right: auto;
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-stretch: 125%;
+    letter-spacing: .04em;
+    text-transform: uppercase;
   }
-  nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+  .logo::before { content: ""; width: 14px; height: 14px; background: var(--blau); }
+  nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
   nav a {
+    padding: 12px 0 9px;
+    border-bottom: 3px solid transparent;
     color: var(--muted);
     text-decoration: none;
-    font-size: .78rem;
-    letter-spacing: .1em;
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .08em;
     text-transform: uppercase;
-    padding: 10px 0;
-    border-bottom: 2px solid transparent;
-    transition: color .2s ease;
+    transition: color .2s ease, border-color .2s ease;
   }
-  nav a:hover { color: var(--offwhite); }
-  nav a.aktiv { color: var(--offwhite); border-bottom-color: var(--orange); }
+  nav a:hover { color: var(--schwarz); }
+  nav a.aktiv { color: var(--schwarz); border-bottom-color: var(--blau); }
   @media (min-width: 768px) {
-    header { display: grid; grid-template-columns: 1fr auto 1fr; }
+    header { display: grid; grid-template-columns: 1fr auto 1fr; padding: 0 24px; }
     .logo { margin-right: 0; }
     nav { justify-content: center; }
   }
 
-  main { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 24px 16px 56px; }
-  main > section { display: none; }
+  main { position: relative; max-width: 760px; margin: 0 auto; padding: 0 16px 48px; }
+  main > section { display: none; padding-top: 24px; counter-reset: abschnitt; }
   main > section.aktiv { display: block; }
 
   h1 {
-    display: inline-block;
-    font-size: 2.2rem;
-    font-weight: 800;
-    line-height: .95;
-    letter-spacing: -.02em;
-    margin: 8px 0 16px;
-    background: linear-gradient(90deg, var(--orange), var(--orange-pale));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
-  @media (min-width: 768px) { h1 { font-size: 3.6rem; } }
-  h2 {
-    font-size: .72rem;
-    font-weight: 600;
+    margin: 0 0 14px;
+    font-size: clamp(2rem, 8.8vw, 4.2rem);
+    font-weight: 900;
+    font-stretch: 125%;
+    line-height: .92;
+    letter-spacing: -.01em;
     text-transform: uppercase;
-    letter-spacing: .14em;
-    color: var(--muted);
-    margin: 0 0 12px;
+    overflow-wrap: anywhere;
+    color: var(--schwarz);
   }
-  .beschreibung { color: var(--muted); margin: 0 0 20px; font-size: 1.02rem; line-height: 1.5; max-width: 42ch; }
+  h1 .initial { color: var(--blau); }
+  h2 {
+    margin: 0 0 12px;
+    font-size: .8rem;
+    font-weight: 800;
+    font-stretch: 112%;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--schwarz);
+  }
+  /* Abschnitte je Seite nummeriert: 01, 02, 03 */
+  h2::before {
+    counter-increment: abschnitt;
+    content: counter(abschnitt, decimal-leading-zero);
+    margin-right: .7em;
+    color: var(--blau);
+  }
+  .beschreibung { margin: 0 0 18px; max-width: 44ch; color: var(--muted); font-size: 1.02rem; line-height: 1.5; }
 
-  /* Panels blenden beim Erscheinen ein: 400 ms, ease-out, 16 px Versatz */
+  /* Schwarze Fläche oben auf der Startseite: Titel und Kennzahlen */
+  .hero { margin: 0 0 16px; padding: 24px 18px 20px; background: var(--schwarz); color: var(--creme); }
+  .hero h1 { color: var(--creme); }
+  .hero h1 .initial { color: var(--orange); }
+  .hero .beschreibung { margin-bottom: 20px; color: rgba(233, 217, 202, .86); }
+  .hero .kpi-zeile { margin-bottom: 0; }
+
+  /* Kennzahlen: blaue Linie oben, grosse Zahl, kleiner Text */
+  .kpi-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+  .kpi { min-width: 0; padding-top: 10px; border-top: 3px solid var(--blau); }
+  .kpi-zahl { font-size: 2.2rem; font-weight: 900; font-stretch: 125%; line-height: 1; overflow-wrap: anywhere; }
+  .kpi-text { margin-top: 8px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .hero .kpi-zahl { color: var(--creme); }
+  .hero .kpi-text { color: rgba(233, 217, 202, .86); }
+
   .panel {
-    background: var(--panel);
-    border: 1px solid var(--linie);
-    border-radius: 0;
-    padding: 18px;
     margin-bottom: 16px;
+    padding: 18px;
+    background: var(--creme);
+    border: 1.5px solid var(--schwarz);
+    border-radius: 0;
     animation: einblenden .4s ease-out both;
   }
   @keyframes einblenden {
@@ -132,170 +143,148 @@
     to { opacity: 1; transform: none; }
   }
 
-  .lbl {
-    display: block;
-    font-size: .74rem;
-    color: var(--muted);
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    margin: 14px 0 6px;
-  }
+  .lbl { display: block; margin: 14px 0 6px; font-size: .74rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
   .feld {
     width: 100%;
     padding: 11px 12px;
+    border: 1.5px solid var(--schwarz);
     border-radius: 0;
-    border: 1px solid var(--linie);
-    background: var(--schwarz);
-    color: var(--offwhite);
+    background: var(--creme);
+    color: var(--schwarz);
+    font: inherit;
     font-size: 1rem;
   }
-  .feld:focus { outline: none; border-color: var(--offwhite); }
+  .feld:focus { outline: 3px solid var(--blau); outline-offset: 1px; }
   .zeile { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
   .zeile > * { flex: 1 1 auto; }
 
-  /* Primärbutton: Verlauf, Schrift schwarz. Sekundärbutton: Umriss 1,5 px */
   .knopf, .knopf-sekundaer {
-    padding: 12px 18px;
+    padding: 13px 18px;
+    border: 1.5px solid var(--schwarz);
     border-radius: 0;
+    font: inherit;
     font-size: .95rem;
     font-weight: 700;
-    cursor: pointer;
-    border: 1.5px solid transparent;
     text-align: center;
-    transition: transform .3s ease, box-shadow .3s ease, background-color .3s ease;
+    cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, background-color .2s ease;
   }
-  .knopf {
-    background: linear-gradient(90deg, var(--orange), var(--orange-hell));
-    color: var(--schwarz);
-  }
-  .knopf:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255, 77, 26, .25); }
-  .knopf-sekundaer { background: transparent; color: var(--offwhite); border-color: var(--offwhite); }
-  .knopf-sekundaer:hover:not(:disabled) { background: rgba(242, 240, 235, .08); }
+  /* Primärknopf: Blau mit Creme-Schrift. Beim Drüberfahren ein harter Schatten statt Glühen */
+  .knopf { background: var(--blau); border-color: var(--blau); color: var(--creme); }
+  .knopf:hover:not(:disabled) { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--schwarz); }
+  .knopf-sekundaer { background: transparent; color: var(--schwarz); }
+  .knopf-sekundaer:hover:not(:disabled) { background: rgba(17, 17, 17, .08); }
   .knopf:disabled, .knopf-sekundaer:disabled { opacity: .4; cursor: default; }
-  /* Ski ready grün. Kante ready nutzt den normalen Primärbutton wie Eintrag speichern */
-  .bereit-knopf { background: #3ecf6e; color: var(--schwarz); }
+  /* Ski ready: Orange mit schwarzer Schrift */
+  .bereit-knopf { background: var(--orange); border-color: var(--schwarz); color: var(--schwarz); }
   .knopf-paar > * { flex: 1 1 0; }
   @media (max-width: 600px) {
     .knopf-paar { flex-direction: column; }
   }
-  .bestaetigt { color: #FFB38A; font-weight: 700; margin-top: 8px; min-height: 1.2em; }
 
+  .bestaetigt { margin-top: 8px; min-height: 1.2em; color: var(--blau); font-weight: 700; }
   .checkgruppe { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 6px; }
-  .check { color: var(--offwhite); font-size: .95rem; display: inline-flex; align-items: center; gap: 8px; }
-  input[type="checkbox"] { accent-color: var(--orange); width: 18px; height: 18px; }
-  .wachsliste label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 0;
-    font-size: .95rem;
-    border-bottom: 1px solid var(--linie);
-  }
+  .check { display: inline-flex; align-items: center; gap: 8px; font-size: .95rem; color: var(--schwarz); }
+  input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--blau); }
+  .wachsliste label { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: .95rem; border-bottom: 1px solid var(--linie); }
   .wachsliste label:last-child { border-bottom: 0; }
 
-  .hinweis { color: var(--muted); font-size: .85rem; margin-top: 6px; min-height: 1.2em; line-height: 1.5; }
-  .ergebnis { border-top: 1px solid var(--linie); padding-top: 14px; margin-top: 18px; }
-  .wachs-name { font-weight: 700; font-size: 1.15rem; margin-top: 4px; }
+  .hinweis { margin-top: 6px; min-height: 1.2em; font-size: .85rem; line-height: 1.5; color: var(--muted); }
+  .ergebnis { margin-top: 18px; padding-top: 14px; border-top: 1.5px solid var(--schwarz); }
+  .wachs-name { margin-top: 4px; font-size: 1.15rem; font-weight: 800; }
 
-  /* Karten: 12 px Radius, ohne Rand-Linien, Hover hebt sich 6 px */
+  /* Ski: eckige Karte. Kante ready blau, Ski ready orange, jeweils dick umrandet */
   .ski {
-    background: var(--panel);
-    border: 1px solid var(--linie);
-    border-radius: 0;
-    padding: 16px;
     margin-bottom: 14px;
-    transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease;
+    padding: 16px;
+    background: var(--creme);
+    border: 1.5px solid var(--schwarz);
+    border-radius: 0;
   }
-  .ski:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(0, 0, 0, .5); }
-  .ski.kante:not(.bereit) {
-    border-color: var(--orange);
-    border-width: 1.5px;
-    background: linear-gradient(180deg, rgba(255, 77, 26, .10), rgba(255, 77, 26, .02)), var(--panel);
-  }
-  .ski.bereit {
-    border-color: #3ecf6e;
-    border-width: 1.5px;
-    background: linear-gradient(180deg, rgba(62, 207, 110, .12), rgba(62, 207, 110, .03)), var(--panel);
-    box-shadow: 0 0 0 1px rgba(62, 207, 110, .18), 0 12px 28px rgba(62, 207, 110, .10);
-  }
-  .ski.aktiv { outline: 1.5px solid var(--offwhite); outline-offset: 3px; }
-  .ski-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; cursor: pointer; }
-  .ski-name { font-weight: 700; font-size: 1.02rem; letter-spacing: .01em; }
-  .ski-name strong { color: var(--orange); font-size: 1.15rem; }
-  .ski-datum { color: var(--muted); font-weight: 400; font-size: .85rem; }
-  .ski-meta { color: var(--muted); font-size: .8rem; }
+  .ski.kante:not(.bereit) { border: 3px solid var(--blau); padding: 14.5px; }
+  .ski.bereit { border: 3px solid var(--orange); padding: 14.5px; }
+  .ski.aktiv { outline: 2px solid var(--schwarz); outline-offset: 3px; }
+  .ski-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; cursor: pointer; }
+  .ski-name { font-size: 1.02rem; font-weight: 800; letter-spacing: .01em; }
+  .ski-name strong { color: var(--blau); font-size: 1.15rem; }
+  .ski-datum { font-size: .85rem; font-weight: 400; color: var(--muted); }
+  .ski-meta { font-size: .8rem; color: var(--muted); }
   .ski-bereit {
     display: inline-block;
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .08em;
-    padding: 2px 7px;
-    border-radius: 0;
     margin-right: 4px;
-    vertical-align: middle;
-    color: #3ecf6e;
-    border: 1px solid #3ecf6e;
-  }
-
-  svg { width: 100%; height: auto; display: block; overflow: visible; }
-  .baseline { stroke: var(--linie); stroke-width: 2; }
-  .tick { stroke: var(--linie); stroke-width: 1; }
-  .axis-label { fill: var(--muted); font-size: 15px; }
-  .dot { cursor: pointer; stroke: none; }
-  .dot:hover, .dot:focus, .dot.aktiv-punkt { stroke: var(--offwhite); stroke-width: 2; outline: none; }
-  .legende { color: var(--muted); font-size: .8rem; margin: 6px 0 0; display: flex; gap: 14px; flex-wrap: wrap; }
-  .detail {
-    background: var(--schwarz);
-    border: 1px solid var(--linie);
+    padding: 2px 7px;
+    border: 1.5px solid var(--schwarz);
     border-radius: 0;
-    padding: 14px 16px;
-    font-size: .92rem;
+    background: var(--orange);
+    color: var(--schwarz);
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    vertical-align: middle;
+  }
+  .ski-aktionen { display: flex; gap: 6px; margin-left: auto; }
+  .ski-aktionen .icon-knopf { width: 34px; height: 34px; flex: 0 0 34px; }
+  .ski-aktionen .icon-knopf:disabled { opacity: .35; cursor: default; }
+
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .baseline { stroke: var(--schwarz); stroke-width: 2; }
+  .tick { stroke: var(--schwarz); stroke-width: 1; }
+  .axis-label { fill: var(--schwarz); font-size: 17px; font-weight: 600; }
+  .dot { cursor: pointer; stroke: var(--schwarz); stroke-width: 1.5; }
+  .dot:hover, .dot:focus, .dot.aktiv-punkt { stroke-width: 3; outline: none; }
+  .legende { display: flex; flex-wrap: wrap; gap: 14px; margin: 8px 0 0; font-size: .8rem; color: var(--schwarz); }
+  .detail {
     min-height: 3.2em;
     margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--creme);
+    border: 1.5px solid var(--schwarz);
+    border-radius: 0;
+    font-size: .92rem;
   }
   .detail .k { color: var(--muted); }
-  .leer { color: var(--muted); font-style: italic; }
-  .eintrag-zeile { border-top: 1px solid var(--linie); padding: 12px 0; }
-  .eintrag-zeile:first-child { border-top: 0; padding-top: 0; }
-  .eintrag-kopf { font-weight: 700; font-size: .95rem; }
-  .eintrag-zeile { -webkit-touch-callout: none; }
+  .leer { font-style: italic; color: var(--muted); }
+  .eintrag-zeile { padding: 12px 0; border-top: 1px solid var(--linie); -webkit-touch-callout: none; }
+  .eintrag-zeile:first-child { padding-top: 0; border-top: 0; }
+  .eintrag-kopf { font-size: .95rem; font-weight: 800; }
   .eintrag-kopf, .eintrag-zeile > .hinweis { user-select: none; -webkit-user-select: none; }
+
   .fenster-hintergrund {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: rgba(0, 0, 0, .72);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
+    background: rgba(17, 17, 17, .6);
     overflow-y: auto;
   }
   .fenster {
     width: 100%;
     max-width: 680px;
-    background: var(--panel);
-    border: 1px solid var(--linie);
-    border-radius: 0;
     padding: 18px;
+    background: var(--creme);
+    border: 1.5px solid var(--schwarz);
+    border-radius: 0;
   }
   .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-  .fenster-aktionen { display: flex; gap: 8px; align-items: flex-start; flex: none; }
+  .fenster-aktionen { display: flex; flex: none; gap: 8px; align-items: flex-start; }
   .eintrag-kopf-zeile { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .fenster-datum { width: auto; margin-top: 8px; padding: 8px 10px; color-scheme: dark; }
+  .fenster-datum { width: auto; margin-top: 8px; padding: 8px 10px; }
   .fenster-kreuz {
     flex: none;
     width: 42px;
     height: 42px;
-    border: 1.5px solid var(--offwhite);
+    border: 1.5px solid var(--schwarz);
     border-radius: 0;
     background: transparent;
-    color: var(--offwhite);
+    color: var(--schwarz);
     font-size: 1.6rem;
     line-height: 1;
     cursor: pointer;
   }
-  .fenster-kreuz:hover { background: rgba(242, 240, 235, .08); }
+  .fenster-kreuz:hover { background: rgba(17, 17, 17, .08); }
   .icon-knopf {
     flex: 0 0 40px;
     width: 40px;
@@ -304,27 +293,30 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    border: 1.5px solid var(--offwhite);
+    border: 1.5px solid var(--schwarz);
     border-radius: 0;
     background: transparent;
-    color: var(--offwhite);
+    color: var(--schwarz);
     cursor: pointer;
   }
-  .icon-knopf:hover { background: rgba(242, 240, 235, .08); }
+  .icon-knopf:hover { background: rgba(17, 17, 17, .08); }
   .zeile > .icon-knopf { flex: 0 0 40px; }
   .fenster-zeitstrahl { margin: 8px 0 14px; }
   .fenster .zeile > * { flex: 1 1 0; }
   .fenster .zeile > .icon-knopf { flex: 0 0 40px; width: 40px; }
-  .ski-kopf { flex-wrap: wrap; align-items: center; }
-  .ski-aktionen { display: flex; gap: 6px; margin-left: auto; }
-  .ski-aktionen .icon-knopf { width: 34px; height: 34px; flex: 0 0 34px; }
-  .ski-aktionen .icon-knopf:disabled { opacity: .35; cursor: default; }
-  .trenner { border: 0; border-top: 1px solid var(--linie); margin: 16px 0; }
+  .trenner { margin: 16px 0; border: 0; border-top: 1.5px solid var(--schwarz); }
+
+  /* Fusszeile: schwarzes Band mit echten Angaben zur App */
+  footer.kontakt { padding: 30px 16px 36px; background: var(--schwarz); color: var(--creme); }
+  footer.kontakt .innen { max-width: 760px; margin: 0 auto; }
+  footer.kontakt .marke { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 900; font-stretch: 125%; line-height: 1; text-transform: uppercase; }
+  footer.kontakt .marke::before { content: ""; width: 14px; height: 14px; background: var(--blau); }
+  footer.kontakt p { max-width: 52ch; margin: 12px 0 0; line-height: 1.5; color: rgba(233, 217, 202, .86); }
 
   @media (prefers-reduced-motion: reduce) {
     .panel { animation: none; }
-    .ski, .knopf, .knopf-sekundaer, header { transition: none; }
-    .ski:hover, .knopf:hover:not(:disabled) { transform: none; }
+    header, .knopf, .knopf-sekundaer { transition: none; }
+    .knopf:hover:not(:disabled) { transform: none; }
   }
 </style>
 </head>
@@ -349,6 +341,14 @@
   <section id="abfahrt"></section>
 </main>
 
+<footer class="kontakt">
+  <div class="innen">
+    <div class="marke">Stuwax</div>
+    <p>Wachsrechner, Ski und Einträge. Die Wachsempfehlung kommt aus der Vola-Tabelle, die in der App hinterlegt ist.</p>
+    <p>Die Daten liegen nur in diesem Browser. Auf einem anderen Gerät ist die Liste leer.</p>
+  </div>
+</footer>
+
 <script>
 'use strict';
 
@@ -361,11 +361,11 @@ const TAG = 86400000;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const W = 600, H = 60, PAD = 24, BASE_Y = 30;
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-// Farbe der Punkte im Zeitstrahl je Art: Wachsen weiss, Kanten orange, Skifahren grün
+// Farbe der Punkte im Zeitstrahl je Art: Wachsen schwarz, Kanten blau, Skifahren orange
 function symbolFarbe(art) {
-  if (art === 'kanten') return '#FF4D1A';
-  if (art === 'skifahren') return '#3ecf6e';
-  return '#F2F0EB';
+  if (art === 'kanten') return '#4D6080';
+  if (art === 'skifahren') return '#F4721E';
+  return '#111111';
 }
 
 const DISZIPLINEN = [
@@ -589,9 +589,14 @@ function baueHome() {
   homeUI.wachsListe = h('div', { class: 'wachsliste' });
   homeUI.meldung = h('div', { class: 'hinweis' });
 
+  homeUI.kpi = h('div', { class: 'kpi-zeile' });
   sektion.append(
-    h('h1', {}, 'Wachsrechner'),
+    h('div', { class: 'hero' },
+      h('h1', {}, h('span', { class: 'initial' }, 'S'), 'tuwax'),
+      h('p', { class: 'beschreibung' }, 'Lufttemperatur und Schneeart eingeben, dann zeigt die App das passende Vola-Race-Wachs.'),
+      homeUI.kpi),
     h('div', { class: 'panel' },
+      h('h2', {}, 'Wachsrechner'),
       h('div', { class: 'zeile' },
         h('div', {},
           h('div', { class: 'hinweis' }, 'Start'),
@@ -728,6 +733,7 @@ function aktualisiereWachsformulare() {
   for (const d of DISZIPLINEN) {
     if (UI[d.key] && UI[d.key].art.value === 'wachsen') zeigeArtFelder(d.key);
   }
+  zeichneHomeKpi();
 }
 
 
@@ -785,16 +791,19 @@ function baueDisziplin(d) {
   ui.zeitstrahl = h('div');
   ui.detail = h('div', { class: 'detail' }, 'Auf einen Punkt tippen für Details.');
 
+  ui.kpi = h('div', { class: 'kpi-zeile' });
   sektion.innerHTML = '';
   sektion.append(
-    h('h1', {}, d.titel),
+    h('h1', {}, h('span', { class: 'initial' }, d.titel.charAt(0)), d.titel.slice(1)),
+    h('p', { class: 'beschreibung' }, d.text),
+    ui.kpi,
 
     h('div', { class: 'panel' },
       h('h2', {}, 'Zeitstrahl'),
       h('div', { class: 'legende' },
-        h('span', { style: 'color:#F2F0EB' }, '● Wachsen'),
-        h('span', { style: 'color:#FF4D1A' }, '■ Kanten'),
-        h('span', { style: 'color:#3ecf6e' }, '▲ Skifahren')),
+        h('span', {}, h('span', { style: `color:${symbolFarbe('wachsen')}` }, '●'), ' Wachsen'),
+        h('span', {}, h('span', { style: `color:${symbolFarbe('kanten')}` }, '■'), ' Kanten'),
+        h('span', {}, h('span', { style: `color:${symbolFarbe('skifahren')}` }, '▲'), ' Skifahren')),
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
@@ -1282,12 +1291,39 @@ function aktualisiere(key) {
   ui.kanteKnopf.textContent = kanteBereit ? 'Kante ready zurücknehmen' : 'Kante ready';
   ui.kanteKnopf.className = kanteBereit ? 'knopf-sekundaer' : 'knopf';
 
+  const ids = liste.map(s => s.id);
+  zeichneKpi(ui.kpi, [
+    [liste.length, 'Ski'],
+    [state.eintraege.filter(e => ids.includes(e.ski)).length, 'Einträge'],
+    [liste.filter(s => s.bereitSeit).length, 'Ski ready']
+  ]);
   zeichneZeitstrahl(key, liste, aktiv);
+}
+
+// Kennzahlen als Zeile: Zahl oben, Beschriftung darunter
+function zeichneKpi(box, werte) {
+  box.textContent = '';
+  for (const [zahl, text] of werte) {
+    box.append(h('div', { class: 'kpi' },
+      h('div', { class: 'kpi-zahl' }, String(zahl)),
+      h('div', { class: 'kpi-text' }, text)));
+  }
+}
+
+// Startseite: Zahlen aus dem ganzen Zustand
+function zeichneHomeKpi() {
+  if (!homeUI.kpi) return;
+  zeichneKpi(homeUI.kpi, [
+    [state.skis.length, 'Ski'],
+    [state.eintraege.length, 'Einträge'],
+    [aktiveWachse().length, 'Wachse aktiv']
+  ]);
 }
 
 function alleAktualisieren() {
   for (const d of DISZIPLINEN) aktualisiere(d.key);
   baueWachsListe();
+  zeichneHomeKpi();
 }
 
 // ============================================================
@@ -1508,7 +1544,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         ski.monat && ski.jahr ? h('span', { class: 'ski-datum' }, ' · ' + String(ski.monat).padStart(2, '0') + '/' + ski.jahr) : null),
       h('span', { class: 'ski-meta' },
         ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY') : null,
-        eigene.length + ' Einträge' + (ski.steinski ? ' · Steinski' : '')),
+        eigene.length + (eigene.length === 1 ? ' Eintrag' : ' Einträge') + (ski.steinski ? ' · Steinski' : '')),
       h('span', { class: 'ski-aktionen' },
         h('button', { class: 'icon-knopf', type: 'button', title: 'Zeitstrahl öffnen', 'aria-label': 'Zeitstrahl öffnen',
           disabled: eigene.length === 0,
@@ -1590,7 +1626,7 @@ function zeigeVerlauf(key, ski, eigene) {
     return;
   }
   for (const e of [...eigene].reverse()) {
-    box.append(h('div', { style: 'margin-top:10px; padding-top:8px; border-top:1px solid var(--line)' },
+    box.append(h('div', { style: 'margin-top:10px; padding-top:8px; border-top:1px solid var(--linie)' },
       h('div', {}, h('span', { class: 'k' }, datumDE(e.datum) + ' · ' + ARTEN[e.art])),
       h('div', {}, eintragKurz(e)),
       e.notiz ? h('div', { class: 'k' }, e.notiz) : null
@@ -1721,6 +1757,7 @@ function route() {
   document.querySelectorAll('main > section').forEach(s => s.classList.toggle('aktiv', s.id === name));
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('aktiv', a.dataset.route === name));
   if (name !== 'home') aktualisiere(name);
+  else zeichneHomeKpi();
   window.scrollTo(0, 0);
 }
 
