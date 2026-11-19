@@ -280,6 +280,19 @@
     padding: 18px;
   }
   .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .fenster-kreuz {
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid var(--offwhite);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--offwhite);
+    font-size: 1.6rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .fenster-kreuz:hover { background: rgba(242, 240, 235, .08); }
   .fenster-zeitstrahl { margin: 8px 0 14px; }
   .fenster .zeile > * { flex: 1 1 0; }
   .trenner { border: 0; border-top: 1px solid var(--linie); margin: 16px 0; }
@@ -1050,7 +1063,8 @@ function zeigeEintragFenster(key, ski, startEintrag) {
         h('div', {},
           h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
           h('div', { class: 'hinweis' }, `Eintrag ${idx + 1} von ${alle.length}`)),
-        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: schliessen }, 'Schliessen')),
+        h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
+          'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×')),
       zeitstrahlBox,
       h('div', { class: 'panel' },
         h('div', { class: 'eintrag-kopf' }, `${datumDE(e.datum)} · ${ARTEN[e.art]}`),
