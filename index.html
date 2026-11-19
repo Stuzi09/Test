@@ -561,9 +561,6 @@ function baueHome() {
   homeUI.luft = h('input', { class: 'feld', id: 'luft', type: 'number', step: '0.5', value: '-6' });
   homeUI.schnee = h('input', { class: 'feld', id: 'schnee', type: 'number', step: '0.5', value: '-8' });
   homeUI.feuchte = h('input', { class: 'feld', id: 'feuchte', type: 'number', step: '1', min: '0', max: '100', value: '60' });
-  homeUI.zustand = h('select', { class: 'feld', id: 'zustand' },
-    h('option', { value: 'trocken' }, 'trocken'),
-    h('option', { value: 'nass' }, 'nass'));
   // Start und Ziel: leer lassen, wenn nur ein Wert gilt
   const schneeartOptionen = () => [h('option', { value: '' }, '—'),
     ...['Neuschnee', 'Altschnee', 'Kunstschnee', 'Firn'].map(a => h('option', { value: a }, a))];
@@ -571,8 +568,6 @@ function baueHome() {
   homeUI.schneeartZiel = h('select', { class: 'feld', id: 'schneeartZiel' }, schneeartOptionen());
   homeUI.luftZiel = h('input', { class: 'feld', id: 'luftZiel', type: 'number', step: '0.5' });
   homeUI.schneeZiel = h('input', { class: 'feld', id: 'schneeZiel', type: 'number', step: '0.5' });
-  homeUI.niederschlag = h('select', { class: 'feld', id: 'niederschlag' },
-    ['kein Niederschlag', 'Regen', 'Nassschnee', 'Schneefall'].map(a => h('option', { value: a }, a)));
   homeUI.ergebnis = h('div', { class: 'ergebnis' });
   homeUI.wachsListe = h('div', { class: 'wachsliste' });
   homeUI.meldung = h('div', { class: 'hinweis' });
@@ -596,8 +591,6 @@ function baueHome() {
           h('label', { class: 'lbl', for: 'schneeZiel' }, 'Schneetemperatur (°C)'), homeUI.schneeZiel,
           h('label', { class: 'lbl', for: 'schneeartZiel' }, 'Schneeart'), homeUI.schneeartZiel)),
       h('label', { class: 'lbl', for: 'feuchte' }, 'Luftfeuchtigkeit (%)'), homeUI.feuchte,
-      h('label', { class: 'lbl', for: 'zustand' }, 'Schnee'), homeUI.zustand,
-      h('label', { class: 'lbl', for: 'niederschlag' }, 'Niederschlag'), homeUI.niederschlag,
       h('div', { class: 'zeile' },
         h('button', { class: 'knopf', type: 'button', onclick: wachsrechnerStart }, 'Wachs empfehlen')),
       homeUI.ergebnis
@@ -629,7 +622,6 @@ function wachsrechnerStart() {
   const zielSchnee = zahlOderNull(homeUI.schneeZiel);
   const tSchnee = mittelWert(startSchnee, zielSchnee);
   const schneeart = homeUI.schneeart.value || homeUI.schneeartZiel.value;
-  const niederschlag = homeUI.niederschlag.value;
 
   homeUI.ergebnis.innerHTML = '';
   if (luft === null) {
