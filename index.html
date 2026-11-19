@@ -886,7 +886,11 @@ function zeigeArtFelder(key) {
       h('div', { class: 'checkgruppe' },
         LAUFARTEN.map(l => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: l.id, 'data-feld': 'lauf' }),
-          l.name)))
+          l.name))),
+      h('label', { class: 'lbl' }, 'Ranking (1 bis 10)'),
+      h('select', { class: 'feld', 'data-feld': 'ranking' },
+        [h('option', { value: '' }, '—'),
+          ...Array.from({ length: 10 }, (_, i) => h('option', { value: String(i + 1) }, String(i + 1)))])
     );
   }
 }
@@ -1036,7 +1040,7 @@ function eintragSchluessel(e) {
   if (e.art === 'kanten') return 'kanten|' + e.kanten;
   const f = e.fahrten || {};
   return 'skifahren|' + [...(f.arten || [])].sort().join(',') + '|' + (f.abfahrten || 0)
-    + '|' + [...(f.pisten || [])].sort().join(',') + '|' + [...(f.lauf || [])].sort().join(',');
+    + '|' + [...(f.pisten || [])].sort().join(',') + '|' + [...(f.lauf || [])].sort().join(',') + '|' + (f.ranking || '');
 }
 
 function eintragSpeichern(key) {
@@ -1074,7 +1078,8 @@ function eintragSpeichern(key) {
     const abfahrten = Math.max(0, Math.round(Number(ui.artFelder.querySelector('[data-feld="abfahrten"]').value) || 0));
     const pisten = [...ui.artFelder.querySelectorAll('[data-feld="piste"]:checked')].map(c => c.value);
     const lauf = [...ui.artFelder.querySelectorAll('[data-feld="lauf"]:checked')].map(c => c.value);
-    basis.fahrten = { arten, abfahrten, pisten, lauf };
+    const rankingWert = ui.artFelder.querySelector('[data-feld="ranking"]').value;
+    basis.fahrten = { arten, abfahrten, pisten, lauf, ranking: rankingWert ? Number(rankingWert) : null };
   }
 
   const gespeichert = [];
@@ -1244,7 +1249,8 @@ function eintragKurz(e) {
   const lauf = (f.lauf || []).map(id => (LAUFARTEN.find(x => x.id === id) || {}).name).filter(Boolean);
   return [namen.length ? namen.join(', ') : '–', (f.abfahrten || 0) + ' Abfahrten',
     pisten.length ? 'Piste: ' + pisten.join(', ') : null,
-    lauf.length ? 'Lauf: ' + lauf.join(', ') : null].filter(Boolean).join(' · ');
+    lauf.length ? 'Lauf: ' + lauf.join(', ') : null,
+    f.ranking ? 'Ranking ' + f.ranking + '/10' : null].filter(Boolean).join(' · ');
 }
 
 // Listet alle Einträge eines Skis, neueste zuerst.
@@ -1302,7 +1308,11 @@ function bearbeiteEintrag(key, ski, e) {
       h('div', { class: 'checkgruppe' },
         LAUFARTEN.map(l => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: l.id, checked: ((e.fahrten && e.fahrten.lauf) || []).includes(l.id) ? true : null, 'data-lauf': '1' }),
-          l.name))));
+          l.name))),
+      h('label', { class: 'lbl' }, 'Ranking (1 bis 10)'),
+      h('select', { class: 'feld', 'data-rank': '1' },
+        [h('option', { value: '' }, '—'),
+          ...Array.from({ length: 10 }, (_, i) => h('option', { value: String(i + 1), selected: (e.fahrten && e.fahrten.ranking) === i + 1 ? true : null }, String(i + 1)))]));
   }
 
   box.append(
@@ -1327,7 +1337,8 @@ function bearbeiteEintrag(key, ski, e) {
               arten: [...artFeld.querySelectorAll('[data-fahrt]:checked')].map(c => c.value),
               abfahrten: Math.max(0, Math.round(Number(artFeld.querySelector('[data-abf]').value) || 0)),
               pisten: [...artFeld.querySelectorAll('[data-piste]:checked')].map(c => c.value),
-              lauf: [...artFeld.querySelectorAll('[data-lauf]:checked')].map(c => c.value)
+              lauf: [...artFeld.querySelectorAll('[data-lauf]:checked')].map(c => c.value),
+              ranking: artFeld.querySelector('[data-rank]').value ? Number(artFeld.querySelector('[data-rank]').value) : null
             };
           }
           speichern();
@@ -1361,6 +1372,7 @@ function zeigeDetail(key, ski, e, punkt) {
     const laufNamen = ((e.fahrten && e.fahrten.lauf) || []).map(id => (LAUFARTEN.find(l => l.id === id) || {}).name).filter(Boolean);
     if (pistenNamen.length) zeilen.push(['Pisten', pistenNamen.join(', ')]);
     if (laufNamen.length) zeilen.push(['Lauf', laufNamen.join(', ')]);
+    if (e.fahrten && e.fahrten.ranking) zeilen.push(['Ranking', e.fahrten.ranking + ' / 10']);
   }
   zeilen.push(['Bewertung', e.bewertung + ' / 5']);
   if (e.notiz) zeilen.push(['Notiz', e.notiz]);
