@@ -358,7 +358,12 @@ const TAG = 86400000;
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const W = 600, H = 60, PAD = 24, BASE_Y = 30;
 const MONATE = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-const PUNKT_FARBE = '#F2F0EB';
+// Farbe der Punkte im Zeitstrahl je Art: Wachsen weiss, Kanten orange, Skifahren grün
+function symbolFarbe(art) {
+  if (art === 'kanten') return '#FF4D1A';
+  if (art === 'skifahren') return '#3ecf6e';
+  return '#F2F0EB';
+}
 
 const DISZIPLINEN = [
   { key: 'slalom', titel: 'Slalom', text: 'Kurze Tore, enge Radien, viel Kantenarbeit.' },
@@ -838,7 +843,10 @@ function baueDisziplin(d) {
 
     h('div', { class: 'panel' },
       h('h2', {}, 'Zeitstrahl'),
-      h('div', { class: 'legende' }, '● Wachsen   ■ Kanten   ▲ Skifahren'),
+      h('div', { class: 'legende' },
+        h('span', { style: 'color:#F2F0EB' }, '● Wachsen'),
+        h('span', { style: 'color:#FF4D1A' }, '■ Kanten'),
+        h('span', { style: 'color:#3ecf6e' }, '▲ Skifahren')),
       h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
@@ -1044,7 +1052,7 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
       punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
     }
     punkt.setAttribute('class', 'dot' + (e.id === aktuell.id ? ' aktiv-punkt' : ''));
-    punkt.setAttribute('fill', PUNKT_FARBE);
+    punkt.setAttribute('fill', symbolFarbe(e.art));
     punkt.setAttribute('tabindex', '0');
     punkt.addEventListener('click', () => aufWahl(e));
   }
@@ -1527,7 +1535,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
       }
       punkt.setAttribute('class', 'dot');
-      punkt.setAttribute('fill', PUNKT_FARBE);
+      punkt.setAttribute('fill', symbolFarbe(e.art));
       punkt.setAttribute('tabindex', '0');
       const oeffnen = ev => {
         ev.stopPropagation(); // nicht zusätzlich den ganzen Verlauf öffnen
