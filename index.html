@@ -569,8 +569,8 @@ function baueHome() {
     ...['Neuschnee', 'Altschnee', 'Kunstschnee', 'Firn'].map(a => h('option', { value: a }, a))];
   homeUI.schneeart = h('select', { class: 'feld', id: 'schneeart' }, schneeartOptionen());
   homeUI.schneeartZiel = h('select', { class: 'feld', id: 'schneeartZiel' }, schneeartOptionen());
-  homeUI.luftZiel = h('input', { class: 'feld', id: 'luftZiel', type: 'number', step: '0.5', placeholder: 'leer lassen' });
-  homeUI.schneeZiel = h('input', { class: 'feld', id: 'schneeZiel', type: 'number', step: '0.5', placeholder: 'leer lassen' });
+  homeUI.luftZiel = h('input', { class: 'feld', id: 'luftZiel', type: 'number', step: '0.5' });
+  homeUI.schneeZiel = h('input', { class: 'feld', id: 'schneeZiel', type: 'number', step: '0.5' });
   homeUI.niederschlag = h('select', { class: 'feld', id: 'niederschlag' },
     ['kein Niederschlag', 'Regen', 'Nassschnee', 'Schneefall'].map(a => h('option', { value: a }, a)));
   homeUI.ergebnis = h('div', { class: 'ergebnis' });
@@ -665,8 +665,6 @@ function wachsrechnerStart() {
       h('span', { style: `display:inline-block;width:14px;height:14px;border-radius:50%;background:${VOLA_FARBEN[zone]};margin-right:6px;vertical-align:middle` }),
       gefunden.length ? 'Vola Race' : 'Kein aktives Wachs für diese Bedingungen'),
     ...gefunden.map(g => h('div', { class: 'hinweis' }, `${g.name} (${g.typen.join(', ')})`)),
-    h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}${schneeText}, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
-    ...(gefunden.length ? [] : [h('div', { class: 'hinweis' }, 'Aktiviere die passenden Wachse unter „Meine Wachse“.')])
   );
 }
 
@@ -867,7 +865,6 @@ function zeigeArtFelder(key) {
         h('div', {},
           h('label', { class: 'lbl' }, 'Basewachs'),
           h('select', { class: 'feld', 'data-feld': 'wachs-base' }, optionen('basewachs')))),
-      ...(hatBase ? [] : [h('div', { class: 'hinweis' }, 'Basewachse sind noch nicht erfasst.')])
     );
   } else if (art === 'kanten') {
     ui.artFelder.append(
@@ -1038,7 +1035,7 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     hinweisText = '';
     if (!ziel) {
       ziel = liste.filter(d => d < iso).pop() || liste.find(d => d > iso) || null;
-      if (ziel) hinweisText = `Kein Eintrag am ${datumDE(iso)}. Gezeigt wird ${datumDE(ziel)}.`;
+      if (ziel) hinweisText = `Kein Eintrag am ${datumDE(iso)}.`;
     }
     if (!ziel) return;
     aktuellerTag = ziel;
@@ -1332,7 +1329,6 @@ function skiHinzufuegen(key) {
   ui.neuStein.checked = false;
   speichern();
   alleAktualisieren();
-  ui.skiMeldung.textContent = name + ' angelegt.';
 }
 
 // Bestätigung direkt im Seitenbereich. Das Browserfenster confirm() ist in Claude blockiert.
@@ -1452,7 +1448,7 @@ function eintragSpeichern(key) {
   ui.notiz.value = '';
   aktualisiere(key);
   ui.eintragMeldung.className = 'bestaetigt';
-  let text = `Gespeichert: ${gespeichert.map(skiBeschriftung).join(', ')}, ${datumDE(basis.datum)}, ${ARTEN[basis.art]}.`;
+  let text = 'Gespeichert.';
   if (schonDa.length) text += ` Schon vorhanden: ${schonDa.map(skiBeschriftung).join(', ')}.`;
   if (bereitZurueck.length) text += ' Ski ready zurückgesetzt.';
   ui.eintragMeldung.textContent = text;
