@@ -258,6 +258,30 @@
   .eintrag-zeile { border-top: 1px solid var(--linie); padding: 12px 0; }
   .eintrag-zeile:first-child { border-top: 0; padding-top: 0; }
   .eintrag-kopf { font-weight: 700; font-size: .95rem; }
+  .eintrag-zeile { -webkit-touch-callout: none; }
+  .eintrag-kopf, .eintrag-zeile > .hinweis { user-select: none; -webkit-user-select: none; }
+  .fenster-hintergrund {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: rgba(0, 0, 0, .72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .fenster {
+    width: 100%;
+    max-width: 680px;
+    background: var(--panel);
+    border: 1px solid var(--linie);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .fenster-zeitstrahl { margin: 8px 0 14px; }
+  .fenster .zeile > * { flex: 1 1 0; }
   .trenner { border: 0; border-top: 1px solid var(--linie); margin: 16px 0; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -911,6 +935,139 @@ function skiBeschriftung(s) {
   return s.name + nr + datum + (s.steinski ? ' (Steinski)' : '');
 }
 
+// Langes Drücken (ca. 0,5 s) auf einen Eintrag öffnet das Eintrag-Fenster.
+// Ein kurzes Antippen oder Scrollen löst nichts aus.
+function langDruecken(element, aktion) {
+  let timer = null;
+  const stoppe = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  element.addEventListener('pointerdown', ev => {
+    if (ev.target.closest('button, input, select, label')) return;
+    stoppe();
+    timer = setTimeout(() => {
+      timer = null;
+      aktion();
+    }, 500);
+  });
+  element.addEventListener('pointerup', stoppe);
+  element.addEventListener('pointerleave', stoppe);
+  element.addEventListener('pointercancel', stoppe);
+  element.addEventListener('pointermove', ev => {
+    if (ev.pointerType === 'touch') stoppe();
+  });
+  element.addEventListener('contextmenu', ev => ev.preventDefault());
+}
+
+// Zeitstrahl eines einzelnen Skis im Fenster. Der aktuelle Eintrag ist hervorgehoben,
+// ein Klick auf einen Punkt springt zu diesem Eintrag.
+function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
+  box.textContent = '';
+  const zeiten = alle.map(e => zeitpunkt(e.datum));
+  const min = Math.min(...zeiten) - 7 * TAG;
+  const max = Math.max(...zeiten) + 7 * TAG;
+  const x = t => PAD + ((t - min) / (max - min)) * (W - 2 * PAD);
+
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Zeitstrahl ' + ski.name });
+  svgEl('line', { x1: PAD, x2: W - PAD, y1: BASE_Y, y2: BASE_Y, class: 'baseline' }, svg);
+
+  const m = new Date(min);
+  m.setDate(1);
+  m.setHours(12, 0, 0, 0);
+  if (m.getTime() < min) m.setMonth(m.getMonth() + 1);
+  while (m.getTime() <= max) {
+    const tx = x(m.getTime());
+    svgEl('line', { x1: tx, x2: tx, y1: BASE_Y, y2: BASE_Y + 5, class: 'tick' }, svg);
+    const beschriftung = svgEl('text', { x: tx, y: BASE_Y + 18, 'text-anchor': 'middle', class: 'axis-label' }, svg);
+    beschriftung.textContent = MONATE[m.getMonth()];
+    m.setMonth(m.getMonth() + 1);
+  }
+
+  const gezaehlt = {};
+  for (const e of alle) {
+    const cx = x(zeitpunkt(e.datum));
+    gezaehlt[e.datum] = (gezaehlt[e.datum] || 0) + 1;
+    const cy = BASE_Y - 8 - (gezaehlt[e.datum] - 1) * 14;
+    const bewertung = Math.min(Math.max(Number(e.bewertung) || 3, 1), 5);
+    let punkt;
+    if (e.art === 'kanten') {
+      punkt = svgEl('rect', { x: cx - 6, y: cy - 6, width: 12, height: 12 }, svg);
+    } else if (e.art === 'skifahren') {
+      punkt = svgEl('path', { d: `M${cx} ${cy - 8} L${cx + 8} ${cy + 6} L${cx - 8} ${cy + 6} Z` }, svg);
+    } else {
+      punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
+    }
+    punkt.setAttribute('class', 'dot' + (e.id === aktuell.id ? ' aktiv-punkt' : ''));
+    punkt.setAttribute('fill', FARBEN[bewertung - 1]);
+    punkt.setAttribute('tabindex', '0');
+    punkt.addEventListener('click', () => aufWahl(e));
+  }
+  box.append(svg);
+}
+
+// Fenster für einen Eintrag: Zeitstrahl des Skis, Details und Zurück/Vor
+function zeigeEintragFenster(key, ski, startEintrag) {
+  const alle = state.eintraege
+    .filter(x => x.ski === ski.id)
+    .sort((a, b) => a.datum.localeCompare(b.datum));
+  let idx = alle.findIndex(x => x.id === startEintrag.id);
+  if (idx < 0) return;
+
+  const hintergrund = h('div', { class: 'fenster-hintergrund' });
+  const karte = h('div', { class: 'fenster' });
+  hintergrund.append(karte);
+  document.body.append(hintergrund);
+
+  const schliessen = () => {
+    hintergrund.remove();
+    document.removeEventListener('keydown', taste);
+  };
+  const wechsel = d => {
+    const neu = idx + d;
+    if (neu < 0 || neu >= alle.length) return;
+    idx = neu;
+    zeichne();
+  };
+  const taste = ev => {
+    if (ev.key === 'Escape') schliessen();
+    if (ev.key === 'ArrowLeft') wechsel(-1);
+    if (ev.key === 'ArrowRight') wechsel(1);
+  };
+  document.addEventListener('keydown', taste);
+  hintergrund.addEventListener('click', ev => {
+    if (ev.target === hintergrund) schliessen();
+  });
+
+  const zeichne = () => {
+    const e = alle[idx];
+    karte.textContent = '';
+    const zeitstrahlBox = h('div', { class: 'fenster-zeitstrahl' });
+    karte.append(
+      h('div', { class: 'fenster-kopf' },
+        h('div', {},
+          h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
+          h('div', { class: 'hinweis' }, `Eintrag ${idx + 1} von ${alle.length}`)),
+        h('button', { class: 'knopf-sekundaer', type: 'button', onclick: schliessen }, 'Schliessen')),
+      zeitstrahlBox,
+      h('div', { class: 'panel' },
+        h('div', { class: 'eintrag-kopf' }, `${datumDE(e.datum)} · ${ARTEN[e.art]}`),
+        h('div', { class: 'zeile' }, eintragKurz(e)),
+        h('div', { class: 'hinweis' }, `Bewertung ${e.bewertung} / 5`),
+        ...(e.notiz ? [h('div', { class: 'hinweis' }, e.notiz)] : [])),
+      h('div', { class: 'zeile' },
+        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === 0, onclick: () => wechsel(-1) }, '◀ Zurück'),
+        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === alle.length - 1, onclick: () => wechsel(1) }, 'Vor ▶')));
+    zeichneEintragZeitstrahl(zeitstrahlBox, ski, alle, e, eintrag => {
+      idx = alle.indexOf(eintrag);
+      zeichne();
+    });
+  };
+  zeichne();
+}
+
 // Liste aller Einträge der Disziplin, neueste zuerst, mit Bearbeiten und Löschen
 function baueEintragsListe(key) {
   const ui = UI[key];
@@ -938,6 +1095,7 @@ function baueEintragsListe(key) {
           aktualisiere(key);
         }) }, 'Löschen')));
     box.append(zeile);
+    langDruecken(zeile, () => zeigeEintragFenster(key, ski, e));
   }
 }
 
