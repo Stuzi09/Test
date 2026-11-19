@@ -345,6 +345,23 @@ function baueVolaWachse() {
   return liste;
 }
 
+// Pistenverhältnisse und Lauf für Skifahren-Einträge (mehrere möglich)
+const PISTENVERHAELTNISSE = [
+  { id: 'eis', name: 'Eis' },
+  { id: 'kompakt', name: 'Kompakt' },
+  { id: 'kugellager', name: 'Kugellager' },
+  { id: 'kunstschnee', name: 'Kunstschnee' },
+  { id: 'aggressiv', name: 'Aggressiv' },
+  { id: 'neuschnee', name: 'Neuschnee' },
+  { id: 'sulz', name: 'Sulz' }
+];
+const LAUFARTEN = [
+  { id: 'drehend', name: 'Drehend' },
+  { id: 'direkt', name: 'Direkt' },
+  { id: 'wenig-platz', name: 'Wenig Platz' },
+  { id: 'viel-platz', name: 'Viel Platz' }
+];
+
 // Beispieldaten. Die Wachse werden später durch das Foto-Inventar ersetzt.
 const DEMO = {
   skis: [
@@ -859,7 +876,17 @@ function zeigeArtFelder(key) {
           h('input', { type: 'checkbox', value: f.id, 'data-feld': 'fahrt' }),
           f.name))),
       h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
-      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: '0', 'data-feld': 'abfahrten' })
+      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: '0', 'data-feld': 'abfahrten' }),
+      h('label', { class: 'lbl' }, 'Pistenverhältnisse (mehrere möglich)'),
+      h('div', { class: 'checkgruppe' },
+        PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
+          h('input', { type: 'checkbox', value: p.id, 'data-feld': 'piste' }),
+          p.name))),
+      h('label', { class: 'lbl' }, 'Lauf (mehrere möglich)'),
+      h('div', { class: 'checkgruppe' },
+        LAUFARTEN.map(l => h('label', { class: 'check' },
+          h('input', { type: 'checkbox', value: l.id, 'data-feld': 'lauf' }),
+          l.name)))
     );
   }
 }
@@ -1008,7 +1035,8 @@ function eintragSchluessel(e) {
   if (e.art === 'wachsen') return 'wachsen|' + e.wachsId;
   if (e.art === 'kanten') return 'kanten|' + e.kanten;
   const f = e.fahrten || {};
-  return 'skifahren|' + [...(f.arten || [])].sort().join(',') + '|' + (f.abfahrten || 0);
+  return 'skifahren|' + [...(f.arten || [])].sort().join(',') + '|' + (f.abfahrten || 0)
+    + '|' + [...(f.pisten || [])].sort().join(',') + '|' + [...(f.lauf || [])].sort().join(',');
 }
 
 function eintragSpeichern(key) {
@@ -1044,7 +1072,9 @@ function eintragSpeichern(key) {
   } else {
     const arten = [...ui.artFelder.querySelectorAll('[data-feld="fahrt"]:checked')].map(c => c.value);
     const abfahrten = Math.max(0, Math.round(Number(ui.artFelder.querySelector('[data-feld="abfahrten"]').value) || 0));
-    basis.fahrten = { arten, abfahrten };
+    const pisten = [...ui.artFelder.querySelectorAll('[data-feld="piste"]:checked')].map(c => c.value);
+    const lauf = [...ui.artFelder.querySelectorAll('[data-feld="lauf"]:checked')].map(c => c.value);
+    basis.fahrten = { arten, abfahrten, pisten, lauf };
   }
 
   const gespeichert = [];
@@ -1209,7 +1239,12 @@ function eintragKurz(e) {
   const namen = ((e.fahrten && e.fahrten.arten) || [])
     .map(id => (FAHRTARTEN.find(f => f.id === id) || {}).name)
     .filter(Boolean);
-  return (namen.length ? namen.join(', ') : '–') + ' · ' + ((e.fahrten && e.fahrten.abfahrten) || 0) + ' Abfahrten';
+  const f = e.fahrten || {};
+  const pisten = (f.pisten || []).map(id => (PISTENVERHAELTNISSE.find(x => x.id === id) || {}).name).filter(Boolean);
+  const lauf = (f.lauf || []).map(id => (LAUFARTEN.find(x => x.id === id) || {}).name).filter(Boolean);
+  return [namen.length ? namen.join(', ') : '–', (f.abfahrten || 0) + ' Abfahrten',
+    pisten.length ? 'Piste: ' + pisten.join(', ') : null,
+    lauf.length ? 'Lauf: ' + lauf.join(', ') : null].filter(Boolean).join(' · ');
 }
 
 // Listet alle Einträge eines Skis, neueste zuerst.
@@ -1257,7 +1292,17 @@ function bearbeiteEintrag(key, ski, e) {
           h('input', { type: 'checkbox', value: f.id, checked: gewaehlt.includes(f.id) ? true : null, 'data-fahrt': '1' }),
           f.name))),
       h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
-      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: String((e.fahrten && e.fahrten.abfahrten) || 0), 'data-abf': '1' }));
+      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: String((e.fahrten && e.fahrten.abfahrten) || 0), 'data-abf': '1' }),
+      h('label', { class: 'lbl' }, 'Pistenverhältnisse (mehrere möglich)'),
+      h('div', { class: 'checkgruppe' },
+        PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
+          h('input', { type: 'checkbox', value: p.id, checked: ((e.fahrten && e.fahrten.pisten) || []).includes(p.id) ? true : null, 'data-piste': '1' }),
+          p.name))),
+      h('label', { class: 'lbl' }, 'Lauf (mehrere möglich)'),
+      h('div', { class: 'checkgruppe' },
+        LAUFARTEN.map(l => h('label', { class: 'check' },
+          h('input', { type: 'checkbox', value: l.id, checked: ((e.fahrten && e.fahrten.lauf) || []).includes(l.id) ? true : null, 'data-lauf': '1' }),
+          l.name))));
   }
 
   box.append(
@@ -1280,7 +1325,9 @@ function bearbeiteEintrag(key, ski, e) {
           } else {
             e.fahrten = {
               arten: [...artFeld.querySelectorAll('[data-fahrt]:checked')].map(c => c.value),
-              abfahrten: Math.max(0, Math.round(Number(artFeld.querySelector('[data-abf]').value) || 0))
+              abfahrten: Math.max(0, Math.round(Number(artFeld.querySelector('[data-abf]').value) || 0)),
+              pisten: [...artFeld.querySelectorAll('[data-piste]:checked')].map(c => c.value),
+              lauf: [...artFeld.querySelectorAll('[data-lauf]:checked')].map(c => c.value)
             };
           }
           speichern();
@@ -1310,6 +1357,10 @@ function zeigeDetail(key, ski, e, punkt) {
       .filter(Boolean);
     zeilen.push(['Fahrten', namen.length ? namen.join(', ') : '–']);
     zeilen.push(['Abfahrten', String((e.fahrten && e.fahrten.abfahrten) || 0)]);
+    const pistenNamen = ((e.fahrten && e.fahrten.pisten) || []).map(id => (PISTENVERHAELTNISSE.find(p => p.id === id) || {}).name).filter(Boolean);
+    const laufNamen = ((e.fahrten && e.fahrten.lauf) || []).map(id => (LAUFARTEN.find(l => l.id === id) || {}).name).filter(Boolean);
+    if (pistenNamen.length) zeilen.push(['Pisten', pistenNamen.join(', ')]);
+    if (laufNamen.length) zeilen.push(['Lauf', laufNamen.join(', ')]);
   }
   zeilen.push(['Bewertung', e.bewertung + ' / 5']);
   if (e.notiz) zeilen.push(['Notiz', e.notiz]);
