@@ -282,6 +282,7 @@
   .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
   .fenster-aktionen { display: flex; gap: 8px; align-items: flex-start; flex: none; }
   .eintrag-kopf-zeile { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .fenster-datum { width: auto; margin-top: 8px; padding: 8px 10px; color-scheme: dark; }
   .fenster-kreuz {
     flex: none;
     width: 42px;
@@ -1071,6 +1072,7 @@ function zeigeEintragFenster(key, ski, startEintrag) {
   if (!alleEintraege().some(x => x.id === startEintrag.id)) return;
   let aktuellerTag = startEintrag.datum;
   let bearbeitenId = null;
+  let hinweisText = '';
 
   const hintergrund = h('div', { class: 'fenster-hintergrund' });
   const karte = h('div', { class: 'fenster' });
@@ -1087,6 +1089,22 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     const neu = liste.indexOf(aktuellerTag) + d;
     if (neu < 0 || neu >= liste.length) return;
     aktuellerTag = liste[neu];
+    bearbeitenId = null;
+    hinweisText = '';
+    zeichne();
+  };
+  // Kalender: springt zum gewählten Tag. Hat er keine Einträge, kommt der nächste davor oder danach.
+  const springeZu = iso => {
+    if (!iso) return;
+    const liste = tage();
+    let ziel = liste.includes(iso) ? iso : null;
+    hinweisText = '';
+    if (!ziel) {
+      ziel = liste.filter(d => d < iso).pop() || liste.find(d => d > iso) || null;
+      if (ziel) hinweisText = `Kein Eintrag am ${datumDE(iso)}. Gezeigt wird ${datumDE(ziel)}.`;
+    }
+    if (!ziel) return;
+    aktuellerTag = ziel;
     bearbeitenId = null;
     zeichne();
   };
@@ -1120,7 +1138,9 @@ function zeigeEintragFenster(key, ski, startEintrag) {
       h('div', { class: 'fenster-kopf' },
         h('div', {},
           h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
-          h('div', { class: 'hinweis' }, `Tag ${idx + 1} von ${liste.length} · ${datumDE(aktuellerTag)}`)),
+          h('input', { class: 'feld fenster-datum', type: 'date', value: aktuellerTag, 'aria-label': 'Tag auswählen',
+            onchange: ev => springeZu(ev.target.value) }),
+          ...(hinweisText ? [h('div', { class: 'hinweis' }, hinweisText)] : [])),
         h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
           'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×')),
       zeitstrahlBox,
@@ -1165,6 +1185,7 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     zeichneEintragZeitstrahl(zeitstrahlBox, ski, alleEintraege(), aktuellerTag, eintrag => {
       aktuellerTag = eintrag.datum;
       bearbeitenId = null;
+      hinweisText = '';
       zeichne();
     });
   };
