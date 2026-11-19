@@ -280,6 +280,7 @@
     padding: 18px;
   }
   .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
+  .fenster-aktionen { display: flex; gap: 8px; align-items: flex-start; flex: none; }
   .fenster-kreuz {
     flex: none;
     width: 42px;
@@ -573,8 +574,6 @@ function aktiverSki(key) {
   return ski || null;
 }
 
-// Skis, deren Zeitstrahl schon geöffnet wurde. Erst dann erscheinen Bearbeiten und Löschen.
-const zeitstrahlGeoeffnet = new Set();
 const UI = {};            // Oberflächenelemente pro Disziplin
 const homeUI = {};        // Oberflächenelemente der Startseite
 const aktuellerSki = {};  // Disziplin -> ID des gewählten Skis
@@ -1063,16 +1062,12 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
 
 // Fenster für einen Eintrag: Zeitstrahl des Skis, Details und Zurück/Vor
 function zeigeEintragFenster(key, ski, startEintrag) {
-  const alle = state.eintraege
+  const alleEintraege = () => state.eintraege
     .filter(x => x.ski === ski.id)
     .sort((a, b) => a.datum.localeCompare(b.datum));
-  let idx = alle.findIndex(x => x.id === startEintrag.id);
-  if (idx < 0) return;
-  // Ab jetzt sind Bearbeiten und Löschen für diesen Ski sichtbar
-  if (!zeitstrahlGeoeffnet.has(ski.id)) {
-    zeitstrahlGeoeffnet.add(ski.id);
-    if (UI[key]) aktualisiere(key);
-  }
+  let aktuelleId = startEintrag.id;
+  let modus = 'ansicht'; // 'ansicht' oder 'bearbeiten'
+  if (!alleEintraege().some(x => x.id === aktuelleId)) return;
 
   const hintergrund = h('div', { class: 'fenster-hintergrund' });
   const karte = h('div', { class: 'fenster' });
@@ -1084,15 +1079,17 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     document.removeEventListener('keydown', taste);
   };
   const wechsel = d => {
-    const neu = idx + d;
-    if (neu < 0 || neu >= alle.length) return;
-    idx = neu;
+    const alle = alleEintraege();
+    const neuIdx = alle.findIndex(x => x.id === aktuelleId) + d;
+    if (neuIdx < 0 || neuIdx >= alle.length) return;
+    aktuelleId = alle[neuIdx].id;
+    modus = 'ansicht';
     zeichne();
   };
   const taste = ev => {
     if (ev.key === 'Escape') schliessen();
-    if (ev.key === 'ArrowLeft') wechsel(-1);
-    if (ev.key === 'ArrowRight') wechsel(1);
+    if (modus === 'ansicht' && ev.key === 'ArrowLeft') wechsel(-1);
+    if (modus === 'ansicht' && ev.key === 'ArrowRight') wechsel(1);
   };
   document.addEventListener('keydown', taste);
   hintergrund.addEventListener('click', ev => {
@@ -1100,26 +1097,66 @@ function zeigeEintragFenster(key, ski, startEintrag) {
   });
 
   const zeichne = () => {
+    const alle = alleEintraege();
+    const idx = alle.findIndex(x => x.id === aktuelleId);
+    if (idx < 0) {
+      schliessen();
+      return;
+    }
     const e = alle[idx];
     karte.textContent = '';
     const zeitstrahlBox = h('div', { class: 'fenster-zeitstrahl' });
+    const detailBox = h('div', { class: 'panel' });
+
     karte.append(
       h('div', { class: 'fenster-kopf' },
         h('div', {},
           h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
           h('div', { class: 'hinweis' }, `Eintrag ${idx + 1} von ${alle.length}`)),
-        h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
-          'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×')),
+        h('div', { class: 'fenster-aktionen' },
+          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
+            onclick: () => {
+              modus = 'bearbeiten';
+              zeichne();
+            } }, stiftIcon()),
+          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
+            onclick: () => bestaetigeInline(detailBox, 'Diesen Eintrag löschen?', () => {
+              state.eintraege = state.eintraege.filter(x => x.id !== e.id);
+              speichern();
+              aktualisiere(key);
+              const rest = alleEintraege();
+              if (!rest.length) {
+                schliessen();
+                return;
+              }
+              aktuelleId = rest[Math.min(idx, rest.length - 1)].id;
+              modus = 'ansicht';
+              zeichne();
+            }) }, muellIcon()),
+          h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
+            'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×'))),
       zeitstrahlBox,
-      h('div', { class: 'panel' },
+      detailBox,
+      ...(modus === 'ansicht' ? [h('div', { class: 'zeile' },
+        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === 0, onclick: () => wechsel(-1) }, '◀ Zurück'),
+        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === alle.length - 1, onclick: () => wechsel(1) }, 'Vor ▶'))] : []));
+
+    if (modus === 'bearbeiten') {
+      // Bearbeiten erscheint direkt in diesem Eintrag im Fenster
+      bearbeiteEintrag(key, ski, e, detailBox, () => {
+        aktualisiere(key);
+        modus = 'ansicht';
+        zeichne();
+      });
+    } else {
+      detailBox.append(
         h('div', { class: 'eintrag-kopf' }, `${datumDE(e.datum)} · ${ARTEN[e.art]}`),
         h('div', { class: 'zeile' }, eintragKurz(e)),
-        ...(e.notiz ? [h('div', { class: 'hinweis' }, e.notiz)] : [])),
-      h('div', { class: 'zeile' },
-        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === 0, onclick: () => wechsel(-1) }, '◀ Zurück'),
-        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === alle.length - 1, onclick: () => wechsel(1) }, 'Vor ▶')));
+        ...(e.notiz ? [h('div', { class: 'hinweis' }, e.notiz)] : []));
+    }
     zeichneEintragZeitstrahl(zeitstrahlBox, ski, alle, e, eintrag => {
-      idx = alle.indexOf(eintrag);
+      aktuelleId = eintrag.id;
+      modus = 'ansicht';
       zeichne();
     });
   };
@@ -1501,15 +1538,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
       h('span', { class: 'ski-aktionen' },
         h('button', { class: 'icon-knopf', type: 'button', title: 'Zeitstrahl öffnen', 'aria-label': 'Zeitstrahl öffnen',
           disabled: eigene.length === 0,
-          onclick: ev => { ev.stopPropagation(); zeigeEintragFenster(key, ski, eigene[eigene.length - 1]); } }, oeffnenIcon()),
-        ...(zeitstrahlGeoeffnet.has(ski.id) ? [
-          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
-            disabled: eigene.length === 0,
-            onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'bearbeiten'); } }, stiftIcon()),
-          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
-            disabled: eigene.length === 0,
-            onclick: ev => { ev.stopPropagation(); zeigeSkiEintraege(key, ski, 'loeschen'); } }, muellIcon())
-        ] : [])));
+          onclick: ev => { ev.stopPropagation(); zeigeEintragFenster(key, ski, eigene[eigene.length - 1]); } }, oeffnenIcon())));
     box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
