@@ -281,6 +281,7 @@
   }
   .fenster-kopf { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
   .fenster-aktionen { display: flex; gap: 8px; align-items: flex-start; flex: none; }
+  .eintrag-kopf-zeile { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   .fenster-kreuz {
     flex: none;
     width: 42px;
@@ -1017,7 +1018,7 @@ function langDruecken(element, aktion) {
 
 // Zeitstrahl eines einzelnen Skis im Fenster. Der aktuelle Eintrag ist hervorgehoben,
 // ein Klick auf einen Punkt springt zu diesem Eintrag.
-function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
+function zeichneEintragZeitstrahl(box, ski, alle, hervorTag, aufWahl) {
   box.textContent = '';
   const zeiten = alle.map(e => zeitpunkt(e.datum));
   const min = Math.min(...zeiten) - 7 * TAG;
@@ -1039,6 +1040,7 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
     m.setMonth(m.getMonth() + 1);
   }
 
+  // Einträge am selben Tag stehen übereinander. Der Tag des Fensters ist hervorgehoben.
   const gezaehlt = {};
   for (const e of alle) {
     const cx = x(zeitpunkt(e.datum));
@@ -1052,7 +1054,7 @@ function zeichneEintragZeitstrahl(box, ski, alle, aktuell, aufWahl) {
     } else {
       punkt = svgEl('circle', { cx: cx, cy: cy, r: 7 }, svg);
     }
-    punkt.setAttribute('class', 'dot' + (e.id === aktuell.id ? ' aktiv-punkt' : ''));
+    punkt.setAttribute('class', 'dot' + (e.datum === hervorTag ? ' aktiv-punkt' : ''));
     punkt.setAttribute('fill', symbolFarbe(e.art));
     punkt.setAttribute('tabindex', '0');
     punkt.addEventListener('click', () => aufWahl(e));
@@ -1065,9 +1067,10 @@ function zeigeEintragFenster(key, ski, startEintrag) {
   const alleEintraege = () => state.eintraege
     .filter(x => x.ski === ski.id)
     .sort((a, b) => a.datum.localeCompare(b.datum));
-  let aktuelleId = startEintrag.id;
-  let modus = 'ansicht'; // 'ansicht' oder 'bearbeiten'
-  if (!alleEintraege().some(x => x.id === aktuelleId)) return;
+  const tage = () => [...new Set(alleEintraege().map(x => x.datum))];
+  if (!alleEintraege().some(x => x.id === startEintrag.id)) return;
+  let aktuellerTag = startEintrag.datum;
+  let bearbeitenId = null;
 
   const hintergrund = h('div', { class: 'fenster-hintergrund' });
   const karte = h('div', { class: 'fenster' });
@@ -1078,18 +1081,19 @@ function zeigeEintragFenster(key, ski, startEintrag) {
     hintergrund.remove();
     document.removeEventListener('keydown', taste);
   };
+  // Zurück und Vor springen von Tag zu Tag, alle Einträge eines Tages bleiben zusammen
   const wechsel = d => {
-    const alle = alleEintraege();
-    const neuIdx = alle.findIndex(x => x.id === aktuelleId) + d;
-    if (neuIdx < 0 || neuIdx >= alle.length) return;
-    aktuelleId = alle[neuIdx].id;
-    modus = 'ansicht';
+    const liste = tage();
+    const neu = liste.indexOf(aktuellerTag) + d;
+    if (neu < 0 || neu >= liste.length) return;
+    aktuellerTag = liste[neu];
+    bearbeitenId = null;
     zeichne();
   };
   const taste = ev => {
     if (ev.key === 'Escape') schliessen();
-    if (modus === 'ansicht' && ev.key === 'ArrowLeft') wechsel(-1);
-    if (modus === 'ansicht' && ev.key === 'ArrowRight') wechsel(1);
+    if (bearbeitenId === null && ev.key === 'ArrowLeft') wechsel(-1);
+    if (bearbeitenId === null && ev.key === 'ArrowRight') wechsel(1);
   };
   document.addEventListener('keydown', taste);
   hintergrund.addEventListener('click', ev => {
@@ -1097,66 +1101,70 @@ function zeigeEintragFenster(key, ski, startEintrag) {
   });
 
   const zeichne = () => {
-    const alle = alleEintraege();
-    const idx = alle.findIndex(x => x.id === aktuelleId);
-    if (idx < 0) {
+    const liste = tage();
+    if (!liste.length) {
       schliessen();
       return;
     }
-    const e = alle[idx];
+    if (!liste.includes(aktuellerTag)) {
+      // Der Tag ist leer geworden: nächsten Tag danach nehmen, sonst den letzten
+      aktuellerTag = liste.find(d => d > aktuellerTag) || liste[liste.length - 1];
+    }
+    const idx = liste.indexOf(aktuellerTag);
+    const eintraegeTag = alleEintraege().filter(x => x.datum === aktuellerTag);
     karte.textContent = '';
-    const zeitstrahlBox = h('div', { class: 'fenster-zeitstrahl' });
-    const detailBox = h('div', { class: 'panel' });
 
+    const zeitstrahlBox = h('div', { class: 'fenster-zeitstrahl' });
+    const eintragsBox = h('div', {});
     karte.append(
       h('div', { class: 'fenster-kopf' },
         h('div', {},
           h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
-          h('div', { class: 'hinweis' }, `Eintrag ${idx + 1} von ${alle.length}`)),
-        h('div', { class: 'fenster-aktionen' },
-          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
-            onclick: () => {
-              modus = 'bearbeiten';
-              zeichne();
-            } }, stiftIcon()),
-          h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
-            onclick: () => bestaetigeInline(detailBox, 'Diesen Eintrag löschen?', () => {
-              state.eintraege = state.eintraege.filter(x => x.id !== e.id);
-              speichern();
-              aktualisiere(key);
-              const rest = alleEintraege();
-              if (!rest.length) {
-                schliessen();
-                return;
-              }
-              aktuelleId = rest[Math.min(idx, rest.length - 1)].id;
-              modus = 'ansicht';
-              zeichne();
-            }) }, muellIcon()),
-          h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
-            'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×'))),
+          h('div', { class: 'hinweis' }, `Tag ${idx + 1} von ${liste.length} · ${datumDE(aktuellerTag)}`)),
+        h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen,
+          'aria-label': 'Zurück zu allen Einträgen', title: 'Zurück zu allen Einträgen' }, '×')),
       zeitstrahlBox,
-      detailBox,
-      ...(modus === 'ansicht' ? [h('div', { class: 'zeile' },
+      eintragsBox,
+      ...(bearbeitenId === null ? [h('div', { class: 'zeile' },
         h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === 0, onclick: () => wechsel(-1) }, '◀ Zurück'),
-        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === alle.length - 1, onclick: () => wechsel(1) }, 'Vor ▶'))] : []));
+        h('button', { class: 'knopf-sekundaer', type: 'button', disabled: idx === liste.length - 1, onclick: () => wechsel(1) }, 'Vor ▶'))] : []));
 
-    if (modus === 'bearbeiten') {
-      // Bearbeiten erscheint direkt in diesem Eintrag im Fenster
-      bearbeiteEintrag(key, ski, e, detailBox, () => {
-        aktualisiere(key);
-        modus = 'ansicht';
-        zeichne();
-      });
-    } else {
-      detailBox.append(
-        h('div', { class: 'eintrag-kopf' }, `${datumDE(e.datum)} · ${ARTEN[e.art]}`),
+    // Alle Einträge dieses Tages untereinander, jeder mit eigenen Icons
+    for (const e of eintraegeTag) {
+      const eintragKarte = h('div', { class: 'panel' });
+      eintragsBox.append(eintragKarte);
+      if (bearbeitenId === e.id) {
+        bearbeiteEintrag(key, ski, e, eintragKarte, () => {
+          aktualisiere(key);
+          bearbeitenId = null;
+          zeichne();
+        });
+        continue;
+      }
+      eintragKarte.append(
+        h('div', { class: 'eintrag-kopf-zeile' },
+          h('div', { class: 'eintrag-kopf' }, ARTEN[e.art]),
+          h('div', { class: 'fenster-aktionen' },
+            h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag bearbeiten', 'aria-label': 'Eintrag bearbeiten',
+              onclick: () => {
+                bearbeitenId = e.id;
+                zeichne();
+              } }, stiftIcon()),
+            h('button', { class: 'icon-knopf', type: 'button', title: 'Eintrag löschen', 'aria-label': 'Eintrag löschen',
+              onclick: () => bestaetigeInline(eintragKarte, 'Diesen Eintrag löschen?', () => {
+                state.eintraege = state.eintraege.filter(x => x.id !== e.id);
+                speichern();
+                aktualisiere(key);
+                bearbeitenId = null;
+                zeichne();
+              }) }, muellIcon()))),
         h('div', { class: 'zeile' }, eintragKurz(e)),
         ...(e.notiz ? [h('div', { class: 'hinweis' }, e.notiz)] : []));
     }
-    zeichneEintragZeitstrahl(zeitstrahlBox, ski, alle, e, eintrag => {
-      aktuelleId = eintrag.id;
-      modus = 'ansicht';
+
+    zeichneEintragZeitstrahl(zeitstrahlBox, ski, alleEintraege(), aktuellerTag, eintrag => {
+      aktuellerTag = eintrag.datum;
+      bearbeitenId = null;
       zeichne();
     });
   };
