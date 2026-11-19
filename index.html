@@ -49,18 +49,11 @@
     transition: min-height .3s ease;
   }
   header.klein { min-height: 64px; }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-right: auto;
-    font-size: 1.05rem;
-    font-weight: 900;
-    font-stretch: 125%;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-  }
-  .logo::before { content: ""; width: 14px; height: 14px; background: var(--blau); }
+  /* Wortmarke STUWAX: schwarz auf Creme (positiv), Creme auf Schwarz (negativ), das S immer orange */
+  .wortmarke { font-weight: 900; font-stretch: 125%; letter-spacing: .04em; text-transform: uppercase; line-height: 1; color: var(--schwarz); }
+  .wortmarke .s { color: var(--orange); }
+  .wortmarke.negativ { color: var(--creme); }
+  .logo { margin-right: auto; font-size: 1.1rem; padding-top: 14px; }
   nav { display: flex; flex-wrap: wrap; gap: 4px 18px; }
   nav a {
     padding: 12px 0 9px;
@@ -87,7 +80,7 @@
 
   h1 {
     margin: 0 0 14px;
-    font-size: clamp(2rem, 8.8vw, 4.2rem);
+    font-size: clamp(1.7rem, 7.5vw, 4rem);
     font-weight: 900;
     font-stretch: 125%;
     line-height: .92;
@@ -96,7 +89,6 @@
     overflow-wrap: anywhere;
     color: var(--schwarz);
   }
-  h1 .initial { color: var(--blau); }
   h2 {
     margin: 0 0 12px;
     font-size: .8rem;
@@ -118,7 +110,6 @@
   /* Schwarze Fläche oben auf der Startseite: Titel und Kennzahlen */
   .hero { margin: 0 0 16px; padding: 24px 18px 20px; background: var(--schwarz); color: var(--creme); }
   .hero h1 { color: var(--creme); }
-  .hero h1 .initial { color: var(--orange); }
   .hero .beschreibung { margin-bottom: 20px; color: rgba(233, 217, 202, .86); }
   .hero .kpi-zeile { margin-bottom: 0; }
 
@@ -242,6 +233,7 @@
     border-radius: 0;
     font-size: .92rem;
   }
+  .detail:empty { display: none; }
   .detail .k { color: var(--muted); }
   .leer { font-style: italic; color: var(--muted); }
   .eintrag-zeile { padding: 12px 0; border-top: 1px solid var(--linie); -webkit-touch-callout: none; }
@@ -309,9 +301,7 @@
   /* Fusszeile: schwarzes Band mit echten Angaben zur App */
   footer.kontakt { padding: 30px 16px 36px; background: var(--schwarz); color: var(--creme); }
   footer.kontakt .innen { max-width: 760px; margin: 0 auto; }
-  footer.kontakt .marke { display: flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 900; font-stretch: 125%; line-height: 1; text-transform: uppercase; }
-  footer.kontakt .marke::before { content: ""; width: 14px; height: 14px; background: var(--blau); }
-  footer.kontakt p { max-width: 52ch; margin: 12px 0 0; line-height: 1.5; color: rgba(233, 217, 202, .86); }
+  footer.kontakt .wortmarke { font-size: 1.4rem; }
 
   @media (prefers-reduced-motion: reduce) {
     .panel { animation: none; }
@@ -323,7 +313,7 @@
 <body>
 
 <header>
-  <div class="logo">Stuwax</div>
+  <div class="logo wortmarke"><span class="s">S</span>TUWAX</div>
   <nav>
     <a href="#/" data-route="home">Wachsrechner</a>
     <a href="#/slalom" data-route="slalom">Slalom</a>
@@ -343,9 +333,7 @@
 
 <footer class="kontakt">
   <div class="innen">
-    <div class="marke">Stuwax</div>
-    <p>Wachsrechner, Ski und Einträge. Die Wachsempfehlung kommt aus der Vola-Tabelle, die in der App hinterlegt ist.</p>
-    <p>Die Daten liegen nur in diesem Browser. Auf einem anderen Gerät ist die Liste leer.</p>
+    <div class="wortmarke negativ"><span class="s">S</span>TUWAX</div>
   </div>
 </footer>
 
@@ -369,10 +357,10 @@ function symbolFarbe(art) {
 }
 
 const DISZIPLINEN = [
-  { key: 'slalom', titel: 'Slalom', text: 'Kurze Tore, enge Radien, viel Kantenarbeit.' },
-  { key: 'riesenslalom', titel: 'Riesenslalom', text: 'Tore etwas weiter auseinander als im Slalom, schnellere Schwünge.' },
-  { key: 'super-g', titel: 'Super-G', text: 'Lange Schwünge bei hohem Tempo, Tore weit auseinander.' },
-  { key: 'abfahrt', titel: 'Abfahrt', text: 'Höchstes Tempo, wenige Tore. Gleiten ist hier am wichtigsten.' }
+  { key: 'slalom', titel: 'Slalom' },
+  { key: 'riesenslalom', titel: 'Riesenslalom' },
+  { key: 'super-g', titel: 'Super-G' },
+  { key: 'abfahrt', titel: 'Abfahrt' }
 ];
 
 const ARTEN = { wachsen: 'Wachsen', kanten: 'Kanten', skifahren: 'Skifahren' };
@@ -592,8 +580,7 @@ function baueHome() {
   homeUI.kpi = h('div', { class: 'kpi-zeile' });
   sektion.append(
     h('div', { class: 'hero' },
-      h('h1', {}, h('span', { class: 'initial' }, 'S'), 'tuwax'),
-      h('p', { class: 'beschreibung' }, 'Lufttemperatur und Schneeart eingeben, dann zeigt die App das passende Vola-Race-Wachs.'),
+      h('h1', { class: 'wortmarke negativ' }, h('span', { class: 's' }, 'S'), 'tuwax'),
       homeUI.kpi),
     h('div', { class: 'panel' },
       h('h2', {}, 'Wachsrechner'),
@@ -608,7 +595,6 @@ function baueHome() {
           h('label', { class: 'lbl', for: 'luftZiel' }, 'Lufttemperatur (°C)'), homeUI.luftZiel,
           h('label', { class: 'lbl', for: 'schneeZiel' }, 'Schneetemperatur (°C)'), homeUI.schneeZiel,
           h('label', { class: 'lbl', for: 'schneeartZiel' }, 'Schneeart'), homeUI.schneeartZiel)),
-      h('div', { class: 'hinweis' }, 'Nur ein Wert ausfüllen, wenn es keinen Wechsel gibt. Sind beide da, rechnet die App mit dem Mittelwert.'),
       h('label', { class: 'lbl', for: 'feuchte' }, 'Luftfeuchtigkeit (%)'), homeUI.feuchte,
       h('label', { class: 'lbl', for: 'zustand' }, 'Schnee'), homeUI.zustand,
       h('label', { class: 'lbl', for: 'niederschlag' }, 'Niederschlag'), homeUI.niederschlag,
@@ -618,7 +604,6 @@ function baueHome() {
     ),
     h('div', { class: 'panel' },
       h('h2', {}, 'Meine Wachse'),
-      h('p', { class: 'beschreibung' }, 'Nur aktive Wachse werden empfohlen und in den Einträgen angeboten.'),
       homeUI.wachsListe
     )
   );
@@ -681,7 +666,6 @@ function wachsrechnerStart() {
       gefunden.length ? 'Vola Race' : 'Kein aktives Wachs für diese Bedingungen'),
     ...gefunden.map(g => h('div', { class: 'hinweis' }, `${g.name} (${g.typen.join(', ')})`)),
     h('div', { class: 'hinweis' }, `${schneeart}, ${niederschlag}, ${luftText}${schneeText}, Farbe ${VOLA_ZONE_NAMEN[zone]}.`),
-    h('div', { class: 'hinweis' }, 'Trocken oder nass ändert nur die Härte innerhalb des Produkts. Das zeigt die App nicht.'),
     ...(gefunden.length ? [] : [h('div', { class: 'hinweis' }, 'Aktiviere die passenden Wachse unter „Meine Wachse“.')])
   );
 }
@@ -780,7 +764,7 @@ function baueDisziplin(d) {
   ui.art = h('select', { class: 'feld', onchange: () => zeigeArtFelder(d.key) },
     Object.entries(ARTEN).map(([id, name]) => h('option', { value: id }, name)));
   ui.artFelder = h('div');
-  ui.notiz = h('input', { class: 'feld', type: 'text', maxlength: '120', placeholder: 'Notiz, optional' });
+  ui.notiz = h('input', { class: 'feld', type: 'text', maxlength: '120' });
   ui.eintragMeldung = h('div', { class: 'hinweis' });
   ui.eintragSkis = h('div', { class: 'checkgruppe' });
   ui.skiWahl = new Set();
@@ -789,14 +773,14 @@ function baueDisziplin(d) {
 
   // Zeitstrahl und Detail
   ui.zeitstrahl = h('div');
-  ui.detail = h('div', { class: 'detail' }, 'Auf einen Punkt tippen für Details.');
+  ui.detail = h('div', { class: 'detail' });
 
   ui.kpi = h('div', { class: 'kpi-zeile' });
   sektion.innerHTML = '';
   sektion.append(
-    h('h1', {}, h('span', { class: 'initial' }, d.titel.charAt(0)), d.titel.slice(1)),
-    h('p', { class: 'beschreibung' }, d.text),
-    ui.kpi,
+    h('div', { class: 'hero' },
+      h('h1', {}, d.titel),
+      ui.kpi),
 
     h('div', { class: 'panel' },
       h('h2', {}, 'Zeitstrahl'),
@@ -804,7 +788,6 @@ function baueDisziplin(d) {
         h('span', {}, h('span', { style: `color:${symbolFarbe('wachsen')}` }, '●'), ' Wachsen'),
         h('span', {}, h('span', { style: `color:${symbolFarbe('kanten')}` }, '■'), ' Kanten'),
         h('span', {}, h('span', { style: `color:${symbolFarbe('skifahren')}` }, '▲'), ' Skifahren')),
-      h('div', { class: 'hinweis' }, 'Auf einen Punkt tippen für Details, auf die Linie für den ganzen Verlauf.'),
       ui.zeitstrahl,
       ui.detail,
       h('div', { class: 'zeile knopf-paar' }, ui.bereitKnopf, ui.kanteKnopf)
@@ -818,7 +801,7 @@ function baueDisziplin(d) {
       ui.skiMeldung,
       h('hr', { class: 'trenner' }),
       h('h2', {}, 'Eintrag erfassen'),
-      h('label', { class: 'lbl' }, 'Ski (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Ski'),
       ui.eintragSkis,
       h('label', { class: 'lbl' }, 'Tag'),
       ui.datum,
@@ -835,7 +818,7 @@ function baueDisziplin(d) {
       h('h2', {}, 'Neuer Ski'),
       h('label', { class: 'lbl' }, 'Disziplin'),
       ui.neuDisziplin,
-      h('label', { class: 'lbl' }, 'Nummer (0 bis 10)'),
+      h('label', { class: 'lbl' }, 'Nummer'),
       ui.neuNummer,
       h('label', { class: 'lbl' }, 'Monat'),
       ui.neuMonat,
@@ -894,24 +877,24 @@ function zeigeArtFelder(key) {
     );
   } else {
     ui.artFelder.append(
-      h('label', { class: 'lbl' }, 'Gefahrene Fahrten (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Gefahrene Fahrten'),
       h('div', { class: 'checkgruppe' },
         FAHRTARTEN.map(f => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: f.id, 'data-feld': 'fahrt' }),
           f.name))),
       h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
       h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: '0', 'data-feld': 'abfahrten' }),
-      h('label', { class: 'lbl' }, 'Pistenverhältnisse (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Pistenverhältnisse'),
       h('div', { class: 'checkgruppe' },
         PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: p.id, 'data-feld': 'piste' }),
           p.name))),
-      h('label', { class: 'lbl' }, 'Lauf (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Lauf'),
       h('div', { class: 'checkgruppe' },
         LAUFARTEN.map(l => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: l.id, 'data-feld': 'lauf' }),
           l.name))),
-      h('label', { class: 'lbl' }, 'Ranking (1 bis 10)'),
+      h('label', { class: 'lbl' }, 'Ranking'),
       h('select', { class: 'feld', 'data-feld': 'ranking' },
         [h('option', { value: '' }, '—'),
           ...Array.from({ length: 10 }, (_, i) => h('option', { value: String(i + 1) }, String(i + 1)))])
@@ -1283,7 +1266,7 @@ function aktualisiere(key) {
   } else {
     ui.bereitKnopf.textContent = 'Ski ready';
     ui.bereitKnopf.className = 'knopf bereit-knopf';
-    ui.bereitText.textContent = 'Lege zuerst einen Ski an.';
+    ui.bereitText.textContent = '';
   }
 
   const kanteBereit = Boolean(aktiv && aktiv.kanteBereitSeit);
@@ -1461,7 +1444,7 @@ function eintragSpeichern(key) {
   }
 
   if (!gespeichert.length) {
-    ui.eintragMeldung.textContent = 'Diesen Eintrag gibt es für diesen Tag schon, er wurde nicht noch einmal gespeichert.';
+    ui.eintragMeldung.textContent = 'Schon vorhanden, nicht gespeichert.';
     return;
   }
 
@@ -1470,8 +1453,8 @@ function eintragSpeichern(key) {
   aktualisiere(key);
   ui.eintragMeldung.className = 'bestaetigt';
   let text = `Gespeichert: ${gespeichert.map(skiBeschriftung).join(', ')}, ${datumDE(basis.datum)}, ${ARTEN[basis.art]}.`;
-  if (schonDa.length) text += ` Schon vorhanden, nicht noch einmal gespeichert: ${schonDa.map(skiBeschriftung).join(', ')}.`;
-  if (bereitZurueck.length) text += ' Ski ready wurde zurückgesetzt.';
+  if (schonDa.length) text += ` Schon vorhanden: ${schonDa.map(skiBeschriftung).join(', ')}.`;
+  if (bereitZurueck.length) text += ' Ski ready zurückgesetzt.';
   ui.eintragMeldung.textContent = text;
 }
 
@@ -1659,17 +1642,17 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail, nachEnde = null
           f.name))),
       h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
       h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: String((e.fahrten && e.fahrten.abfahrten) || 0), 'data-abf': '1' }),
-      h('label', { class: 'lbl' }, 'Pistenverhältnisse (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Pistenverhältnisse'),
       h('div', { class: 'checkgruppe' },
         PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: p.id, checked: ((e.fahrten && e.fahrten.pisten) || []).includes(p.id) ? true : null, 'data-piste': '1' }),
           p.name))),
-      h('label', { class: 'lbl' }, 'Lauf (mehrere möglich)'),
+      h('label', { class: 'lbl' }, 'Lauf'),
       h('div', { class: 'checkgruppe' },
         LAUFARTEN.map(l => h('label', { class: 'check' },
           h('input', { type: 'checkbox', value: l.id, checked: ((e.fahrten && e.fahrten.lauf) || []).includes(l.id) ? true : null, 'data-lauf': '1' }),
           l.name))),
-      h('label', { class: 'lbl' }, 'Ranking (1 bis 10)'),
+      h('label', { class: 'lbl' }, 'Ranking'),
       h('select', { class: 'feld', 'data-rank': '1' },
         [h('option', { value: '' }, '—'),
           ...Array.from({ length: 10 }, (_, i) => h('option', { value: String(i + 1), selected: (e.fahrten && e.fahrten.ranking) === i + 1 ? true : null }, String(i + 1)))]));
