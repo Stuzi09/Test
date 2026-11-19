@@ -78,7 +78,7 @@
     font-size: .78rem;
     letter-spacing: .1em;
     text-transform: uppercase;
-    padding: 6px 0;
+    padding: 10px 0;
     border-bottom: 2px solid transparent;
     transition: color .2s ease;
   }
@@ -240,7 +240,7 @@
   svg { width: 100%; height: auto; display: block; overflow: visible; }
   .baseline { stroke: var(--linie); stroke-width: 2; }
   .tick { stroke: var(--linie); stroke-width: 1; }
-  .axis-label { fill: var(--muted); font-size: 11px; }
+  .axis-label { fill: var(--muted); font-size: 15px; }
   .dot { cursor: pointer; stroke: none; }
   .dot:hover, .dot:focus, .dot.aktiv-punkt { stroke: var(--offwhite); stroke-width: 2; outline: none; }
   .legende { color: var(--muted); font-size: .8rem; margin: 6px 0 0; display: flex; gap: 14px; flex-wrap: wrap; }
@@ -431,28 +431,11 @@ const LAUFARTEN = [
   { id: 'viel-platz', name: 'Viel Platz' }
 ];
 
-// Beispieldaten. Die Wachse werden später durch das Foto-Inventar ersetzt.
+// Startzustand: keine Ski und keine Einträge, die Vola-Wachsliste ist vorbelegt.
 const DEMO = {
-  skis: [
-    { id: 'a', name: 'Ski A', laenge: 170, disziplin: 'slalom', bereitSeit: null },
-    { id: 'b', name: 'Ski B', laenge: 165, disziplin: 'riesenslalom', bereitSeit: null },
-    { id: 'c', name: 'Ski C', laenge: 178, disziplin: 'abfahrt', bereitSeit: '2027-02-18' },
-    { id: 'd', name: 'Ski D', laenge: 180, disziplin: 'super-g', bereitSeit: null }
-  ],
+  skis: [],
   wachse: baueVolaWachse(),
-  eintraege: [
-    { id: 'e1', ski: 'a', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 4, notiz: 'Gute Gleitfähigkeit' },
-    { id: 'e2', ski: 'a', datum: '2026-12-12', art: 'wachsen', wachsId: 'w2', bewertung: 3, notiz: '' },
-    { id: 'e3', ski: 'a', datum: '2027-01-08', art: 'wachsen', wachsId: 'w2', bewertung: 5, notiz: 'Sehr schnell' },
-    { id: 'e4', ski: 'a', datum: '2027-01-20', art: 'skifahren', fahrten: { arten: ['piste', 'training'], abfahrten: 14 }, bewertung: 4, notiz: '' },
-    { id: 'e5', ski: 'a', datum: '2027-02-03', art: 'wachsen', wachsId: 'w2', bewertung: 2, notiz: 'Zu nass, Ski klebte' },
-    { id: 'e6', ski: 'b', datum: '2026-12-04', art: 'wachsen', wachsId: 'w1', bewertung: 3, notiz: '' },
-    { id: 'e7', ski: 'b', datum: '2027-01-15', art: 'wachsen', wachsId: 'w2', bewertung: 4, notiz: '' },
-    { id: 'e8', ski: 'c', datum: '2027-01-08', art: 'wachsen', wachsId: 'w2', bewertung: 4, notiz: '' },
-    { id: 'e9', ski: 'c', datum: '2027-02-19', art: 'kanten', kanten: 'diamant', bewertung: 3, notiz: '' },
-    { id: 'e10', ski: 'c', datum: '2027-02-19', art: 'wachsen', wachsId: 'w1', bewertung: 5, notiz: '' },
-    { id: 'e11', ski: 'c', datum: '2027-02-20', art: 'skifahren', fahrten: { arten: ['tiefschnee'], abfahrten: 6 }, bewertung: 5, notiz: '' }
-  ]
+  eintraege: []
 };
 
 // ============================================================
@@ -747,46 +730,8 @@ function aktualisiereWachsformulare() {
   }
 }
 
-function exportieren() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = h('a', { href: url, download: 'stuwax-' + heuteISO() + '.json' });
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
-function importVonDatei(ev) {
-  const datei = ev.target.files && ev.target.files[0];
-  if (!datei) return;
-  const leser = new FileReader();
-  leser.onload = () => {
-    try {
-      const daten = JSON.parse(leser.result);
-      if (!Array.isArray(daten.skis) || !Array.isArray(daten.wachse) || !Array.isArray(daten.eintraege)) {
-        throw new Error('Dateiformat passt nicht');
-      }
-      state = daten;
-      speichern();
-      alleAktualisieren();
-      homeUI.meldung.textContent = 'Import erfolgreich.';
-    } catch (err) {
-      homeUI.meldung.textContent = 'Import fehlgeschlagen: ' + err.message;
-    }
-  };
-  leser.readAsText(datei);
-  ev.target.value = '';
-}
 
-function zuruecksetzen() {
-  bestaetigeInline(homeUI.meldung, 'Alle Ski, Wachse und Einträge durch die Beispieldaten ersetzen?', () => {
-    state = kopie(DEMO);
-    speichern();
-    alleAktualisieren();
-    homeUI.meldung.textContent = 'Beispieldaten geladen.';
-  });
-}
 
 // ============================================================
 // 6. Disziplinseiten: Ski-Auswahl, Ready, Eintrag, Zeitstrahl
