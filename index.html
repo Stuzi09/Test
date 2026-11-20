@@ -732,6 +732,16 @@ function baueDisziplin(d) {
   ui.skiEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiEntfernen(d.key) }, 'Ski entfernen');
   ui.entfernAuswahl = h('select', { class: 'feld' });
   ui.entfernMeldung = h('div', { class: 'hinweis' });
+
+  // Ski bearbeiten
+  ui.bearbAuswahl = h('select', { class: 'feld', onchange: () => { ui.bearbMeldung.textContent = ''; fuelleBearbeiten(d.key, ui.bearbAuswahl.value); } });
+  ui.bearbDisziplin = h('select', { class: 'feld' }, DISZIPLINEN.map(x => h('option', { value: x.key }, x.titel)));
+  ui.bearbNummer = h('select', { class: 'feld' }, Array.from({ length: 11 }, (_, i) => h('option', { value: String(i) }, String(i))));
+  ui.bearbMonat = h('select', { class: 'feld' }, MONATE.map((m, i) => h('option', { value: String(i + 1) }, m)));
+  ui.bearbJahr = h('input', { class: 'feld', type: 'number', min: '2000', max: '2100', step: '1' });
+  ui.bearbStein = h('input', { type: 'checkbox' });
+  ui.bearbMeldung = h('div', { class: 'hinweis' });
+  ui.bearbSpeichern = h('button', { class: 'knopf', type: 'button', onclick: () => skiBearbeiten(d.key) }, 'Speichern');
   ui.bereitText = h('div', { class: 'hinweis' });
   ui.skiMeldung = h('div', { class: 'hinweis' });
 
@@ -821,6 +831,23 @@ function baueDisziplin(d) {
       ui.entfernAuswahl,
       h('div', { class: 'zeile' }, ui.skiEntfernen),
       ui.entfernMeldung
+    ),
+
+    h('div', { class: 'panel' },
+      h('h2', {}, 'Ski bearbeiten'),
+      h('label', { class: 'lbl' }, 'Welcher Ski'),
+      ui.bearbAuswahl,
+      h('label', { class: 'lbl' }, 'Disziplin'),
+      ui.bearbDisziplin,
+      h('label', { class: 'lbl' }, 'Nummer'),
+      ui.bearbNummer,
+      h('label', { class: 'lbl' }, 'Monat'),
+      ui.bearbMonat,
+      h('label', { class: 'lbl' }, 'Jahr'),
+      ui.bearbJahr,
+      h('label', { class: 'check', style: 'margin-top:10px' }, ui.bearbStein, 'Steinski'),
+      h('div', { class: 'zeile' }, ui.bearbSpeichern),
+      ui.bearbMeldung
     )
   );
 
@@ -1239,10 +1266,16 @@ function aktualisiere(key) {
   }
   ui.entfernAuswahl.value = aktiv ? aktiv.id : '';
 
+  ui.bearbAuswahl.innerHTML = '';
+  for (const s of liste) ui.bearbAuswahl.append(h('option', { value: s.id }, skiBeschriftung(s)));
+  ui.bearbAuswahl.value = aktiv ? aktiv.id : '';
+  fuelleBearbeiten(key, ui.bearbAuswahl.value);
+
   const hatSki = Boolean(aktiv);
   ui.bereitKnopf.disabled = !hatSki;
   ui.skiEntfernen.disabled = !hatSki;
   ui.speichern.disabled = !hatSki;
+  ui.bearbSpeichern.disabled = !hatSki;
 
   if (aktiv) {
     ui.bereitKnopf.textContent = aktiv.bereitSeit ? 'Ready zurücknehmen' : 'Ski ready';
@@ -1317,6 +1350,47 @@ function skiHinzufuegen(key) {
   ui.neuStein.checked = false;
   speichern();
   alleAktualisieren();
+}
+
+// Ski bearbeiten: die Felder zeigen den gewählten Ski
+function fuelleBearbeiten(key, skiId) {
+  const ui = UI[key];
+  const ski = state.skis.find(s => s.id === skiId);
+  if (!ski) return;
+  ui.bearbDisziplin.value = ski.disziplin;
+  ui.bearbNummer.value = String(ski.nummer ?? 0);
+  ui.bearbMonat.value = String(ski.monat || new Date().getMonth() + 1);
+  ui.bearbJahr.value = String(ski.jahr || new Date().getFullYear());
+  ui.bearbStein.checked = Boolean(ski.steinski);
+}
+
+// Speichert die Änderungen. Wechselt die Disziplin, steht der Ski danach auf der anderen Seite.
+function skiBearbeiten(key) {
+  const ui = UI[key];
+  const ski = state.skis.find(s => s.id === ui.bearbAuswahl.value);
+  if (!ski) return;
+  const jahr = Number(ui.bearbJahr.value);
+  if (!Number.isInteger(jahr) || jahr < 2000 || jahr > 2100) {
+    ui.bearbMeldung.textContent = 'Bitte ein Jahr zwischen 2000 und 2100 eingeben.';
+    return;
+  }
+  const alt = ski.disziplin;
+  const neu = ui.bearbDisziplin.value;
+  ski.disziplin = neu;
+  ski.name = DISZIPLINEN.find(x => x.key === neu).titel;
+  ski.nummer = Number(ui.bearbNummer.value);
+  ski.monat = Number(ui.bearbMonat.value);
+  ski.jahr = jahr;
+  ski.steinski = ui.bearbStein.checked;
+  if (alt !== neu) {
+    if (aktuellerSki[alt] === ski.id) aktuellerSki[alt] = null;
+    aktuellerSki[neu] = ski.id;
+  }
+  speichern();
+  alleAktualisieren();
+  ui.bearbMeldung.textContent = alt === neu
+    ? 'Gespeichert.'
+    : `Gespeichert. Der Ski liegt jetzt bei ${DISZIPLINEN.find(x => x.key === neu).titel}.`;
 }
 
 // Bestätigung direkt im Seitenbereich. Das Browserfenster confirm() ist in Claude blockiert.
