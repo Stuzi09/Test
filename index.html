@@ -75,7 +75,7 @@
   }
 
   main { position: relative; max-width: 760px; margin: 0 auto; padding: 0 16px 48px; }
-  main > section { display: none; padding-top: 24px; counter-reset: abschnitt; }
+  main > section { display: none; padding-top: 24px; }
   main > section.aktiv { display: block; }
 
   h1 {
@@ -98,13 +98,6 @@
    
    
     color: var(--schwarz);
-  }
-  /* Abschnitte je Seite nummeriert: 01, 02, 03 */
-  h2::before {
-    counter-increment: abschnitt;
-    content: counter(abschnitt, decimal-leading-zero);
-    margin-right: .7em;
-    color: var(--blau);
   }
   .beschreibung { margin: 0 0 18px; max-width: 44ch; color: var(--muted); font-size: 1.02rem; line-height: 1.5; }
 
