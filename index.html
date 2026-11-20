@@ -62,8 +62,8 @@
     text-decoration: none;
     font-size: .8rem;
     font-weight: 700;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+   
+   
     transition: color .2s ease, border-color .2s ease;
   }
   nav a:hover { color: var(--schwarz); }
@@ -85,7 +85,7 @@
    
     line-height: .92;
     letter-spacing: -.01em;
-    text-transform: uppercase;
+   
     overflow-wrap: anywhere;
     color: var(--schwarz);
   }
@@ -94,8 +94,8 @@
     font-size: .8rem;
     font-weight: 800;
    
-    letter-spacing: .08em;
-    text-transform: uppercase;
+   
+   
     color: var(--schwarz);
   }
   /* Abschnitte je Seite nummeriert: 01, 02, 03 */
@@ -117,7 +117,7 @@
   .kpi-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
   .kpi { min-width: 0; padding-top: 10px; border-top: 3px solid var(--blau); }
   .kpi-zahl { font-size: 2.2rem; font-weight: 900; line-height: 1; overflow-wrap: anywhere; }
-  .kpi-text { margin-top: 8px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .kpi-text { margin-top: 8px; font-size: .72rem; font-weight: 700; color: var(--muted); }
   .hero .kpi-zahl { color: var(--creme); }
   .hero .kpi-text { color: rgba(233, 217, 202, .86); }
 
@@ -134,7 +134,7 @@
     to { opacity: 1; transform: none; }
   }
 
-  .lbl { display: block; margin: 14px 0 6px; font-size: .74rem; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  .lbl { display: block; margin: 14px 0 6px; font-size: .74rem; font-weight: 700; color: var(--muted); }
   .feld {
     width: 100%;
     padding: 11px 12px;
@@ -212,7 +212,7 @@
     color: var(--schwarz);
     font-size: .68rem;
     font-weight: 800;
-    letter-spacing: .08em;
+   
     vertical-align: middle;
   }
   .ski-aktionen { display: flex; gap: 6px; margin-left: auto; }
@@ -1516,7 +1516,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null,
         ski.monat && ski.jahr ? h('span', { class: 'ski-datum' }, ' · ' + String(ski.monat).padStart(2, '0') + '/' + ski.jahr) : null),
       h('span', { class: 'ski-meta' },
-        ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'READY') : null,
+        ski.bereitSeit ? h('span', { class: 'ski-bereit' }, 'Ready') : null,
         eigene.length + (eigene.length === 1 ? ' Eintrag' : ' Einträge') + (ski.steinski ? ' · Steinski' : '')),
       h('span', { class: 'ski-aktionen' },
         h('button', { class: 'icon-knopf', type: 'button', title: 'Zeitstrahl öffnen', 'aria-label': 'Zeitstrahl öffnen',
