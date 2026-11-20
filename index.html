@@ -744,6 +744,8 @@ function baueDisziplin(d) {
   ui.bearbJahr = h('input', { class: 'feld', type: 'number', min: '2000', max: '2100', step: '1' });
   ui.bearbStein = h('input', { type: 'checkbox' });
   ui.bearbMeldung = h('div', { class: 'hinweis' });
+  ui.auswertung = h('div');
+  ui.auswertungPanel = h('div', { class: 'panel' }, h('h2', {}, 'Auswertung'), ui.auswertung);
   ui.bearbSpeichern = h('button', { class: 'knopf', type: 'button', onclick: () => skiBearbeiten(d.key) }, 'Speichern');
   ui.bereitText = h('div', { class: 'hinweis' });
   ui.skiMeldung = h('div', { class: 'hinweis' });
@@ -851,7 +853,9 @@ function baueDisziplin(d) {
       h('label', { class: 'check', style: 'margin-top:10px' }, ui.bearbStein, 'Steinski'),
       h('div', { class: 'zeile' }, ui.bearbSpeichern),
       ui.bearbMeldung
-    )
+    ),
+
+    ui.auswertungPanel
   );
 
   zeigeArtFelder(d.key);
@@ -1232,6 +1236,62 @@ function zeigeSkiEintraege(key, ski, modus) {
   zeichne();
 }
 
+// Auswertung: je Ski, bei welcher Piste und welchem Lauf das Ranking höher oder tiefer ausfällt.
+// Eine Kategorie zählt erst ab MIN_FAHRTEN bewerteten Fahrten.
+const MIN_FAHRTEN = 3;
+
+function zahlDE(x) {
+  return x.toFixed(1).replace('.', ',');
+}
+
+// Durchschnitt des Rankings je Kategorie, nur Kategorien mit genug Fahrten, bester zuerst
+function auswertungNach(fahrten, feld, namen) {
+  const summen = {};
+  for (const e of fahrten) {
+    for (const id of (e.fahrten[feld] || [])) {
+      summen[id] = summen[id] || { summe: 0, anzahl: 0 };
+      summen[id].summe += e.fahrten.ranking;
+      summen[id].anzahl += 1;
+    }
+  }
+  return Object.entries(summen)
+    .filter(([, w]) => w.anzahl >= MIN_FAHRTEN)
+    .map(([id, w]) => ({
+      name: (namen.find(n => n.id === id) || { name: id }).name,
+      schnitt: w.summe / w.anzahl,
+      anzahl: w.anzahl
+    }))
+    .sort((a, b) => b.schnitt - a.schnitt);
+}
+
+function zeichneAuswertung(key, liste) {
+  const ui = UI[key];
+  ui.auswertung.textContent = '';
+  ui.auswertungPanel.hidden = !liste.length;
+  for (const ski of nachNummer(liste)) {
+    const bewertet = state.eintraege.filter(e => e.ski === ski.id && e.art === 'skifahren' && e.fahrten && e.fahrten.ranking);
+    ui.auswertung.append(h('div', { style: 'font-weight:700; margin-top:12px' }, skiBeschriftung(ski)));
+    if (!bewertet.length) {
+      ui.auswertung.append(h('div', { class: 'hinweis' }, 'Noch keine bewerteten Fahrten.'));
+      continue;
+    }
+    const gesamt = bewertet.reduce((summe, e) => summe + e.fahrten.ranking, 0) / bewertet.length;
+    ui.auswertung.append(h('div', { class: 'hinweis' }, `Gesamt Ø ${zahlDE(gesamt)} aus ${bewertet.length} Fahrten`));
+    const fmt = w => `${w.name} (Ø ${zahlDE(w.schnitt)}, ${w.anzahl} Fahrten)`;
+    for (const [titel, feld, namen] of [['Piste', 'pisten', PISTENVERHAELTNISSE], ['Lauf', 'lauf', LAUFARTEN]]) {
+      const werte = auswertungNach(bewertet, feld, namen);
+      if (!werte.length) {
+        ui.auswertung.append(h('div', { class: 'hinweis' }, `${titel}: noch zu wenig Fahrten`));
+      } else if (werte.length === 1) {
+        ui.auswertung.append(h('div', { class: 'hinweis' }, `${titel}: ${fmt(werte[0])}`));
+      } else {
+        ui.auswertung.append(h('div', { class: 'hinweis' }, `Besser bei ${titel}: ${fmt(werte[0])}`));
+        ui.auswertung.append(h('div', { class: 'hinweis' }, `Schlechter bei ${titel}: ${fmt(werte[werte.length - 1])}`));
+      }
+    }
+  }
+}
+
 // Stellt die Auswahl, die Knöpfe und den Zeitstrahl einer Disziplin auf den aktuellen Stand.
 function aktualisiere(key) {
   const ui = UI[key];
@@ -1301,6 +1361,7 @@ function aktualisiere(key) {
     [state.eintraege.filter(e => ids.includes(e.ski)).length, 'Einträge'],
     [liste.filter(s => s.bereitSeit).length, 'Ski ready']
   ]);
+  zeichneAuswertung(key, liste);
   zeichneZeitstrahl(key, liste, aktiv);
 }
 
