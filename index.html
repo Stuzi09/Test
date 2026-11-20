@@ -9,7 +9,7 @@
 <title>Stuwax</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
 <style>
   /* Farben: Creme als Grund, Schwarz für Schrift, Linien und dunkle Flächen,
      Blau als Akzent, Orange für „bereit“. Ecken eckig, Flächen ohne Verlauf. */
@@ -29,7 +29,7 @@
     min-height: 100vh;
     background: var(--creme);
     color: var(--text);
-    font-family: Archivo, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: Unbounded, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
   }
@@ -50,7 +50,7 @@
   }
   header.klein { min-height: 64px; }
   /* Wortmarke STUWAX: schwarz auf Creme (positiv), Creme auf Schwarz (negativ), das S immer orange */
-  .wortmarke { font-weight: 900; font-stretch: 125%; letter-spacing: .04em; text-transform: uppercase; line-height: 1; color: var(--schwarz); }
+  .wortmarke { font-weight: 900; letter-spacing: .04em; text-transform: uppercase; line-height: 1; color: var(--schwarz); }
   .wortmarke .s { color: var(--orange); }
   .wortmarke.negativ { color: var(--creme); }
   .logo { margin-right: auto; font-size: 1.1rem; padding-top: 14px; }
@@ -82,7 +82,7 @@
     margin: 0 0 14px;
     font-size: clamp(1.7rem, 7.5vw, 4rem);
     font-weight: 900;
-    font-stretch: 125%;
+   
     line-height: .92;
     letter-spacing: -.01em;
     text-transform: uppercase;
@@ -93,7 +93,7 @@
     margin: 0 0 12px;
     font-size: .8rem;
     font-weight: 800;
-    font-stretch: 112%;
+   
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--schwarz);
@@ -116,7 +116,7 @@
   /* Kennzahlen: blaue Linie oben, grosse Zahl, kleiner Text */
   .kpi-zeile { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
   .kpi { min-width: 0; padding-top: 10px; border-top: 3px solid var(--blau); }
-  .kpi-zahl { font-size: 2.2rem; font-weight: 900; font-stretch: 125%; line-height: 1; overflow-wrap: anywhere; }
+  .kpi-zahl { font-size: 2.2rem; font-weight: 900; line-height: 1; overflow-wrap: anywhere; }
   .kpi-text { margin-top: 8px; font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .hero .kpi-zahl { color: var(--creme); }
   .hero .kpi-text { color: rgba(233, 217, 202, .86); }
