@@ -363,13 +363,6 @@ const ARTEN = { wachsen: 'Wachsen', kanten: 'Kanten', skifahren: 'Skifahren' };
 
 const KANTEN_OPTIONEN = { diamant: 'Nur mit Diamant', diamant_feile: 'Diamant und Feile' };
 
-const FAHRTARTEN = [
-  { id: 'piste', name: 'Piste' },
-  { id: 'tiefschnee', name: 'Tiefschnee' },
-  { id: 'training', name: 'Training' },
-  { id: 'rennen', name: 'Rennen' },
-  { id: 'tour', name: 'Tour' }
-];
 
 // Vola: je Typ (Flüssig, Hart) drei Linien (LM, HM, Moly) in vier Farben, also 24 Wachse
 const VOLA_FAMILIEN_NAMEN = { LM: 'LM Race', HM: 'HM Race', LMMOLY: 'LM Race MOLY', HMMOLY: 'HM Race MOLY' };
@@ -896,13 +889,6 @@ function zeigeArtFelder(key) {
     );
   } else {
     ui.artFelder.append(
-      h('label', { class: 'lbl' }, 'Gefahrene Fahrten'),
-      h('div', { class: 'checkgruppe' },
-        FAHRTARTEN.map(f => h('label', { class: 'check' },
-          h('input', { type: 'checkbox', value: f.id, 'data-feld': 'fahrt' }),
-          f.name))),
-      h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
-      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: '0', 'data-feld': 'abfahrten' }),
       h('label', { class: 'lbl' }, 'Pistenverhältnisse'),
       h('div', { class: 'checkgruppe' },
         PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
@@ -1237,30 +1223,34 @@ function zeigeSkiEintraege(key, ski, modus) {
 }
 
 // Auswertung: je Ski, bei welcher Piste und welchem Lauf das Ranking höher oder tiefer ausfällt.
-// Eine Kategorie zählt erst ab MIN_FAHRTEN bewerteten Fahrten.
-const MIN_FAHRTEN = 3;
+// Gerechnet wird je Tag: Einträge am selben Tag zählen zusammen als ein Tag.
+// Eine Kategorie zählt erst ab MIN_TAGE Tagen.
+const MIN_TAGE = 3;
 
 function zahlDE(x) {
   return x.toFixed(1).replace('.', ',');
 }
 
-// Durchschnitt des Rankings je Kategorie, nur Kategorien mit genug Fahrten, bester zuerst
-function auswertungNach(fahrten, feld, namen) {
-  const summen = {};
-  for (const e of fahrten) {
+function mittel(liste) {
+  return liste.reduce((summe, x) => summe + x, 0) / liste.length;
+}
+
+// Mittel je Tag, dann Mittel über die Tage. Nur Kategorien mit genug Tagen, bester zuerst.
+function auswertungNach(eintraege, feld, namen) {
+  const proKategorie = {};
+  for (const e of eintraege) {
     for (const id of (e.fahrten[feld] || [])) {
-      summen[id] = summen[id] || { summe: 0, anzahl: 0 };
-      summen[id].summe += e.fahrten.ranking;
-      summen[id].anzahl += 1;
+      proKategorie[id] = proKategorie[id] || {};
+      (proKategorie[id][e.datum] = proKategorie[id][e.datum] || []).push(e.fahrten.ranking);
     }
   }
-  return Object.entries(summen)
-    .filter(([, w]) => w.anzahl >= MIN_FAHRTEN)
-    .map(([id, w]) => ({
-      name: (namen.find(n => n.id === id) || { name: id }).name,
-      schnitt: w.summe / w.anzahl,
-      anzahl: w.anzahl
-    }))
+  return Object.entries(proKategorie)
+    .map(([id, proTag]) => {
+      const tageswerte = Object.values(proTag).map(liste => mittel(liste));
+      return { id, schnitt: mittel(tageswerte), anzahl: tageswerte.length };
+    })
+    .filter(w => w.anzahl >= MIN_TAGE)
+    .map(w => ({ ...w, name: (namen.find(n => n.id === w.id) || { name: w.id }).name }))
     .sort((a, b) => b.schnitt - a.schnitt);
 }
 
@@ -1272,16 +1262,19 @@ function zeichneAuswertung(key, liste) {
     const bewertet = state.eintraege.filter(e => e.ski === ski.id && e.art === 'skifahren' && e.fahrten && e.fahrten.ranking);
     ui.auswertung.append(h('div', { style: 'font-weight:700; margin-top:12px' }, skiBeschriftung(ski)));
     if (!bewertet.length) {
-      ui.auswertung.append(h('div', { class: 'hinweis' }, 'Noch keine bewerteten Fahrten.'));
+      ui.auswertung.append(h('div', { class: 'hinweis' }, 'Noch keine bewerteten Tage.'));
       continue;
     }
-    const gesamt = bewertet.reduce((summe, e) => summe + e.fahrten.ranking, 0) / bewertet.length;
-    ui.auswertung.append(h('div', { class: 'hinweis' }, `Gesamt Ø ${zahlDE(gesamt)} aus ${bewertet.length} Fahrten`));
-    const fmt = w => `${w.name} (Ø ${zahlDE(w.schnitt)}, ${w.anzahl} Fahrten)`;
+    // Gesamt: Mittel je Tag, dann Mittel über die Tage
+    const proTag = {};
+    for (const e of bewertet) proTag[e.datum] = (proTag[e.datum] || []).concat([e.fahrten.ranking]);
+    const tage = Object.values(proTag).map(liste => mittel(liste));
+    ui.auswertung.append(h('div', { class: 'hinweis' }, `Gesamt Ø ${zahlDE(mittel(tage))} an ${tage.length} Tagen`));
+    const fmt = w => `${w.name} (Ø ${zahlDE(w.schnitt)}, ${w.anzahl} Tage)`;
     for (const [titel, feld, namen] of [['Piste', 'pisten', PISTENVERHAELTNISSE], ['Lauf', 'lauf', LAUFARTEN]]) {
       const werte = auswertungNach(bewertet, feld, namen);
       if (!werte.length) {
-        ui.auswertung.append(h('div', { class: 'hinweis' }, `${titel}: noch zu wenig Fahrten`));
+        ui.auswertung.append(h('div', { class: 'hinweis' }, `${titel}: noch zu wenig Tage`));
       } else if (werte.length === 1) {
         ui.auswertung.append(h('div', { class: 'hinweis' }, `${titel}: ${fmt(werte[0])}`));
       } else {
@@ -1503,8 +1496,7 @@ function eintragSchluessel(e) {
   if (e.art === 'wachsen') return 'wachsen|' + e.wachsId;
   if (e.art === 'kanten') return 'kanten|' + e.kanten;
   const f = e.fahrten || {};
-  return 'skifahren|' + [...(f.arten || [])].sort().join(',') + '|' + (f.abfahrten || 0)
-    + '|' + [...(f.pisten || [])].sort().join(',') + '|' + [...(f.lauf || [])].sort().join(',') + '|' + (f.ranking || '');
+  return 'skifahren|' + [...(f.pisten || [])].sort().join(',') + '|' + [...(f.lauf || [])].sort().join(',') + '|' + (f.ranking || '');
 }
 
 function eintragSpeichern(key) {
@@ -1537,12 +1529,10 @@ function eintragSpeichern(key) {
   } else if (basis.art === 'kanten') {
     basis.kanten = ui.artFelder.querySelector('[data-feld="kanten"]').value;
   } else {
-    const arten = [...ui.artFelder.querySelectorAll('[data-feld="fahrt"]:checked')].map(c => c.value);
-    const abfahrten = Math.max(0, Math.round(Number(ui.artFelder.querySelector('[data-feld="abfahrten"]').value) || 0));
     const pisten = [...ui.artFelder.querySelectorAll('[data-feld="piste"]:checked')].map(c => c.value);
     const lauf = [...ui.artFelder.querySelectorAll('[data-feld="lauf"]:checked')].map(c => c.value);
     const rankingWert = ui.artFelder.querySelector('[data-feld="ranking"]').value;
-    basis.fahrten = { arten, abfahrten, pisten, lauf, ranking: rankingWert ? Number(rankingWert) : null };
+    basis.fahrten = { pisten, lauf, ranking: rankingWert ? Number(rankingWert) : null };
   }
 
   const gespeichert = [];
@@ -1708,13 +1698,10 @@ function eintragKurz(e) {
     return w ? `${w.marke} · ${w.name} (${w.typ === 'hart' ? 'Hart' : 'Flüssig'})` : 'gelöschtes Wachs';
   }
   if (e.art === 'kanten') return KANTEN_OPTIONEN[e.kanten] || '–';
-  const namen = ((e.fahrten && e.fahrten.arten) || [])
-    .map(id => (FAHRTARTEN.find(f => f.id === id) || {}).name)
-    .filter(Boolean);
   const f = e.fahrten || {};
   const pisten = (f.pisten || []).map(id => (PISTENVERHAELTNISSE.find(x => x.id === id) || {}).name).filter(Boolean);
   const lauf = (f.lauf || []).map(id => (LAUFARTEN.find(x => x.id === id) || {}).name).filter(Boolean);
-  return [namen.length ? namen.join(', ') : '–', (f.abfahrten || 0) + ' Abfahrten',
+  return [
     pisten.length ? 'Piste: ' + pisten.join(', ') : null,
     lauf.length ? 'Lauf: ' + lauf.join(', ') : null,
     f.ranking ? 'Ranking ' + f.ranking + '/10' : null].filter(Boolean).join(' · ');
@@ -1756,14 +1743,7 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail, nachEnde = null
       Object.entries(KANTEN_OPTIONEN).map(([id, name]) =>
         h('option', { value: id, selected: id === e.kanten ? true : null }, name)));
   } else {
-    const gewaehlt = (e.fahrten && e.fahrten.arten) || [];
     artFeld = h('div', {},
-      h('div', { class: 'checkgruppe' },
-        FAHRTARTEN.map(f => h('label', { class: 'check' },
-          h('input', { type: 'checkbox', value: f.id, checked: gewaehlt.includes(f.id) ? true : null, 'data-fahrt': '1' }),
-          f.name))),
-      h('label', { class: 'lbl' }, 'Anzahl Abfahrten'),
-      h('input', { class: 'feld', type: 'number', min: '0', step: '1', value: String((e.fahrten && e.fahrten.abfahrten) || 0), 'data-abf': '1' }),
       h('label', { class: 'lbl' }, 'Pistenverhältnisse'),
       h('div', { class: 'checkgruppe' },
         PISTENVERHAELTNISSE.map(p => h('label', { class: 'check' },
@@ -1783,7 +1763,7 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail, nachEnde = null
   box.append(
     h('div', { style: 'font-weight:600' }, `${ski.name} · ${ARTEN[e.art]} bearbeiten`),
     h('label', { class: 'lbl' }, 'Tag'), datum,
-    h('label', { class: 'lbl' }, e.art === 'wachsen' ? 'Wachs' : e.art === 'kanten' ? 'Kanten' : 'Fahrten'), artFeld,
+    h('label', { class: 'lbl' }, e.art === 'wachsen' ? 'Wachs' : e.art === 'kanten' ? 'Kanten' : 'Skifahren'), artFeld,
     h('label', { class: 'lbl' }, 'Notiz'), notiz,
     h('div', { class: 'zeile' },
       h('button', {
@@ -1797,8 +1777,6 @@ function bearbeiteEintrag(key, ski, e, zielBox = UI[key].detail, nachEnde = null
             e.kanten = artFeld.value;
           } else {
             e.fahrten = {
-              arten: [...artFeld.querySelectorAll('[data-fahrt]:checked')].map(c => c.value),
-              abfahrten: Math.max(0, Math.round(Number(artFeld.querySelector('[data-abf]').value) || 0)),
               pisten: [...artFeld.querySelectorAll('[data-piste]:checked')].map(c => c.value),
               lauf: [...artFeld.querySelectorAll('[data-lauf]:checked')].map(c => c.value),
               ranking: artFeld.querySelector('[data-rank]').value ? Number(artFeld.querySelector('[data-rank]').value) : null
@@ -1827,11 +1805,6 @@ function zeigeDetail(key, ski, e, punkt) {
   } else if (e.art === 'kanten') {
     zeilen.push(['Kanten', KANTEN_OPTIONEN[e.kanten] || '–']);
   } else {
-    const namen = ((e.fahrten && e.fahrten.arten) || [])
-      .map(id => (FAHRTARTEN.find(f => f.id === id) || {}).name)
-      .filter(Boolean);
-    zeilen.push(['Fahrten', namen.length ? namen.join(', ') : '–']);
-    zeilen.push(['Abfahrten', String((e.fahrten && e.fahrten.abfahrten) || 0)]);
     const pistenNamen = ((e.fahrten && e.fahrten.pisten) || []).map(id => (PISTENVERHAELTNISSE.find(p => p.id === id) || {}).name).filter(Boolean);
     const laufNamen = ((e.fahrten && e.fahrten.lauf) || []).map(id => (LAUFARTEN.find(l => l.id === id) || {}).name).filter(Boolean);
     if (pistenNamen.length) zeilen.push(['Pisten', pistenNamen.join(', ')]);
