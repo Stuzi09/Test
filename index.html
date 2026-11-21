@@ -191,6 +191,9 @@
   .ski.kante:not(.bereit) { border: 3px solid var(--blau); padding: 14.5px; }
   .ski.bereit { border: 3px solid var(--orange); padding: 14.5px; }
   .ski.aktiv { outline: 2px solid var(--schwarz); outline-offset: 3px; }
+  .ski-name { cursor: pointer; }
+  .ski-bild { display: block; width: 100%; height: auto; margin-top: 8px; border: 1.5px solid var(--schwarz); }
+  .ski-bild[hidden] { display: none; }
   .ski-kopf { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; cursor: pointer; }
   .ski-name { font-size: 1.02rem; font-weight: 800; letter-spacing: .01em; }
   .ski-name strong { color: var(--blau); font-size: 1.15rem; }
@@ -519,8 +522,10 @@ function ladeState() {
 function speichern() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
   } catch (err) {
     console.warn('Speichern im Browser nicht möglich', err);
+    return false;
   }
 }
 
@@ -741,6 +746,9 @@ function baueDisziplin(d) {
   ui.bearbJahr = h('input', { class: 'feld', type: 'number', min: '2000', max: '2100', step: '1' });
   ui.bearbStein = h('input', { type: 'checkbox' });
   ui.bearbMeldung = h('div', { class: 'hinweis' });
+  ui.bearbBildDatei = h('input', { type: 'file', accept: 'image/*', onchange: () => skiBildHochladen(d.key) });
+  ui.bearbBildVorschau = h('img', { class: 'ski-bild', alt: 'Bild des Skis', hidden: true });
+  ui.bearbBildEntfernen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: () => skiBildEntfernen(d.key) }, 'Bild entfernen');
   ui.auswertung = h('div');
   ui.auswertungPanel = h('div', { class: 'panel' }, h('h2', {}, 'Auswertung'), ui.auswertung);
   ui.bearbSpeichern = h('button', { class: 'knopf', type: 'button', onclick: () => skiBearbeiten(d.key) }, 'Speichern');
@@ -848,6 +856,10 @@ function baueDisziplin(d) {
       h('label', { class: 'lbl' }, 'Jahr'),
       ui.bearbJahr,
       h('label', { class: 'check', style: 'margin-top:10px' }, ui.bearbStein, 'Steinski'),
+      h('label', { class: 'lbl' }, 'Bild'),
+      ui.bearbBildDatei,
+      ui.bearbBildVorschau,
+      h('div', { class: 'zeile' }, ui.bearbBildEntfernen),
       h('div', { class: 'zeile' }, ui.bearbSpeichern),
       ui.bearbMeldung
     ),
@@ -1417,6 +1429,9 @@ function skiHinzufuegen(key) {
 function fuelleBearbeiten(key, skiId) {
   const ui = UI[key];
   const ski = state.skis.find(s => s.id === skiId);
+  ui.bearbBildVorschau.hidden = !(ski && ski.bild);
+  ui.bearbBildVorschau.src = ski && ski.bild ? ski.bild : '';
+  ui.bearbBildEntfernen.hidden = !(ski && ski.bild);
   if (!ski) return;
   ui.bearbDisziplin.value = ski.disziplin;
   ui.bearbNummer.value = String(ski.nummer ?? 0);
@@ -1452,6 +1467,82 @@ function skiBearbeiten(key) {
   ui.bearbMeldung.textContent = alt === neu
     ? 'Gespeichert.'
     : `Gespeichert. Der Ski liegt jetzt bei ${DISZIPLINEN.find(x => x.key === neu).titel}.`;
+}
+
+// Bild eines Skis: wird verkleinert gespeichert, damit der Speicher im Browser reicht
+function bildVerkleinern(datei) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const bild = new Image();
+      bild.onerror = reject;
+      bild.onload = () => {
+        const skala = Math.min(1, 800 / Math.max(bild.width, bild.height));
+        const leinwand = document.createElement('canvas');
+        leinwand.width = Math.round(bild.width * skala);
+        leinwand.height = Math.round(bild.height * skala);
+        leinwand.getContext('2d').drawImage(bild, 0, 0, leinwand.width, leinwand.height);
+        resolve(leinwand.toDataURL('image/jpeg', 0.8));
+      };
+      bild.src = reader.result;
+    };
+    reader.readAsDataURL(datei);
+  });
+}
+
+function skiBildHochladen(key) {
+  const ui = UI[key];
+  const ski = state.skis.find(s => s.id === ui.bearbAuswahl.value);
+  const datei = ui.bearbBildDatei.files[0];
+  if (!ski || !datei) return;
+  bildVerkleinern(datei).then(bild => {
+    const alt = ski.bild;
+    ski.bild = bild;
+    if (!speichern()) {
+      ski.bild = alt;
+      ui.bearbMeldung.textContent = 'Im Browser ist kein Platz mehr für dieses Bild.';
+      return;
+    }
+    ui.bearbBildDatei.value = '';
+    alleAktualisieren();
+  }).catch(() => {
+    ui.bearbMeldung.textContent = 'Das Bild konnte nicht gelesen werden.';
+  });
+}
+
+function skiBildEntfernen(key) {
+  const ui = UI[key];
+  const ski = state.skis.find(s => s.id === ui.bearbAuswahl.value);
+  if (!ski || !ski.bild) return;
+  delete ski.bild;
+  speichern();
+  alleAktualisieren();
+}
+
+// Klick auf den Namen im Zeitstrahl: zeigt das Bild des Skis in einem Fenster
+function zeigeSkiBild(ski) {
+  const hintergrund = h('div', { class: 'fenster-hintergrund' });
+  const karte = h('div', { class: 'fenster' });
+  hintergrund.append(karte);
+  document.body.append(hintergrund);
+  const schliessen = () => {
+    hintergrund.remove();
+    document.removeEventListener('keydown', taste);
+  };
+  const taste = ev => {
+    if (ev.key === 'Escape') schliessen();
+  };
+  document.addEventListener('keydown', taste);
+  hintergrund.addEventListener('click', ev => {
+    if (ev.target === hintergrund) schliessen();
+  });
+  karte.append(
+    h('div', { class: 'fenster-kopf' },
+      h('div', { class: 'eintrag-kopf' }, skiBeschriftung(ski)),
+      h('button', { class: 'fenster-kreuz', type: 'button', onclick: schliessen, 'aria-label': 'Schliessen', title: 'Schliessen' }, '×')),
+    ski.bild ? h('img', { class: 'ski-bild', src: ski.bild, alt: 'Bild von ' + skiBeschriftung(ski) }) : null
+  );
 }
 
 // Bestätigung direkt im Seitenbereich. Das Browserfenster confirm() ist in Claude blockiert.
@@ -1638,7 +1729,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         aktualisiere(key);
       }
     },
-      h('span', { class: 'ski-name' }, ski.name,
+      h('span', { class: 'ski-name', onclick: ev => { ev.stopPropagation(); zeigeSkiBild(ski); } }, ski.name,
         ski.nummer !== undefined && ski.nummer !== null ? h('strong', {}, ' ' + ski.nummer) : null,
         ski.monat && ski.jahr ? h('span', { class: 'ski-datum' }, ' · ' + String(ski.monat).padStart(2, '0') + '/' + ski.jahr) : null),
       h('span', { class: 'ski-meta' },
