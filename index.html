@@ -579,6 +579,7 @@ function baueHome() {
   homeUI.ergebnis = h('div', { class: 'ergebnis' });
   homeUI.wachsListe = h('div', { class: 'wachsliste' });
   homeUI.meldung = h('div', { class: 'hinweis' });
+  homeUI.speichernKnopf = h('button', { class: 'knopf', type: 'button', onclick: speicherJetzt }, 'Speichern');
   homeUI.sichernKnopf = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: sichernDatei }, 'Sichern');
   homeUI.wiederherstellen = h('input', { type: 'file', accept: '.json,application/json', onchange: wiederherstellenWaehlen });
   homeUI.datenMeldung = h('div', { class: 'hinweis' });
@@ -612,7 +613,7 @@ function baueHome() {
     ),
     h('div', { class: 'panel' },
       h('h2', {}, 'Daten'),
-      h('div', { class: 'zeile' }, homeUI.sichernKnopf),
+      h('div', { class: 'zeile knopf-paar' }, homeUI.speichernKnopf, homeUI.sichernKnopf),
       h('label', { class: 'lbl' }, 'Wiederherstellen'),
       homeUI.wiederherstellen,
       homeUI.datenMeldung
@@ -2043,7 +2044,7 @@ async function dbSchreiben(erzwingen = false) {
             await bilderLaden();
             alleAktualisieren();
             statusMelden('Neuer Stand von einem anderen Gerät übernommen.');
-            return false;
+            return 'konflikt';
           }
         }
       }
@@ -2092,6 +2093,18 @@ function kanonisch(x) {
 
 function fingerabdruck(daten) {
   return JSON.stringify(kanonisch(zuDb(daten)));
+}
+
+// Speichern-Knopf: schreibt den aktuellen Stand sofort und meldet das Ergebnis
+async function speicherJetzt() {
+  if (schreibGesperrt) {
+    homeUI.datenMeldung.textContent = 'Im Moment nicht möglich. Bitte die Seite neu öffnen.';
+    return;
+  }
+  const ergebnis = datenRef ? await dbSchreiben() : speichern();
+  if (ergebnis === true) homeUI.datenMeldung.textContent = 'Gespeichert.';
+  else if (ergebnis === 'konflikt') homeUI.datenMeldung.textContent = '';
+  else homeUI.datenMeldung.textContent = 'Nicht gespeichert.';
 }
 
 // Sicherung: Einträge, Wachse und Bilder als eine Datei
