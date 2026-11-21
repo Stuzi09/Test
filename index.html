@@ -193,6 +193,7 @@
   .ski.kante:not(.bereit) { border: 3px solid var(--blau); padding: 14.5px; }
   .ski.bereit { border: 3px solid var(--orange); padding: 14.5px; }
   .ski.aktiv { outline: 2px solid var(--schwarz); outline-offset: 3px; }
+  .ski.steinski { border-width: 3px; padding: 14.5px; }
   .ski-name { cursor: pointer; }
   .ski-bild { display: block; width: 100%; height: auto; margin-top: 8px; border: 1.5px solid var(--schwarz); }
   .ski-bild[hidden] { display: none; }
@@ -1791,7 +1792,7 @@ function zeichneZeitstrahl(key, liste, aktiv) {
         h('button', { class: 'icon-knopf', type: 'button', title: 'Zeitstrahl öffnen', 'aria-label': 'Zeitstrahl öffnen',
           disabled: eigene.length === 0,
           onclick: ev => { ev.stopPropagation(); zeigeEintragFenster(key, ski, eigene[eigene.length - 1]); } }, oeffnenIcon())));
-    box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') }, kopf, svg));
+    box.append(h('div', { class: 'ski' + (ski.bereitSeit ? ' bereit' : '') + (ski.kanteBereitSeit ? ' kante' : '') + (istAktiv ? ' aktiv' : '') + (ski.steinski ? ' steinski' : '') }, kopf, svg));
 
     // Tippen auf den Zeitstrahl zeigt den ganzen Verlauf dieses Skis
     svg.style.cursor = 'pointer';
