@@ -388,6 +388,10 @@ function baueVolaWachse() {
   for (const name of VOLA_BASE_FLUESSIG) {
     liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'fluessig', aktiv: true, kategorie: 'basewachs' });
   }
+  // Die MX-E-Wachse gibt es zusätzlich bei Hart Base
+  for (const name of VOLA_BASE_FLUESSIG) {
+    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'hart', aktiv: true, kategorie: 'basewachs' });
+  }
   return liste;
 }
 
