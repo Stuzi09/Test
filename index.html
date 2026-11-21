@@ -591,24 +591,6 @@ function baueHome() {
   homeUI.sichernKnopf = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: sichernDatei }, 'Sichern');
   homeUI.wiederherstellen = h('input', { type: 'file', accept: '.json,application/json', onchange: wiederherstellenWaehlen });
   homeUI.datenMeldung = h('div', { class: 'hinweis' });
-  homeUI.ghRepo = h('input', { class: 'feld', id: 'ghRepo', type: 'text', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
-  homeUI.ghToken = h('input', { class: 'feld', id: 'ghToken', type: 'password', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
-  homeUI.ghVerbinden = h('button', { class: 'knopf', type: 'button', onclick: ghVerbinden }, 'Verbinden');
-  homeUI.ghTrennen = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: ghTrennen }, 'Trennen');
-  homeUI.ghMeldung = h('div', { class: 'hinweis' });
-  homeUI.ghEingaben = h('div', {},
-    h('label', { class: 'lbl', for: 'ghRepo' }, 'Repo'), homeUI.ghRepo,
-    h('label', { class: 'lbl', for: 'ghToken' }, 'Token'), homeUI.ghToken,
-    h('div', { class: 'zeile' }, homeUI.ghVerbinden));
-  homeUI.ghPanel = h('div', { class: 'panel' },
-    h('h2', {}, 'GitHub'),
-    homeUI.ghEingaben,
-    h('div', { class: 'zeile' }, homeUI.ghTrennen),
-    homeUI.ghMeldung);
-  const verbunden = Boolean(ghConfig());
-  homeUI.ghPanel.hidden = Boolean(window.claude);
-  homeUI.ghEingaben.hidden = verbunden;
-  homeUI.ghTrennen.hidden = !verbunden;
 
   homeUI.kpi = h('div', { class: 'kpi-zeile' });
   sektion.append(
@@ -643,8 +625,7 @@ function baueHome() {
       h('label', { class: 'lbl' }, 'Wiederherstellen'),
       homeUI.wiederherstellen,
       homeUI.datenMeldung
-    ),
-    homeUI.ghPanel
+    )
   );
 }
 
@@ -2039,7 +2020,7 @@ function statusMelden(text) {
 }
 
 function bildRef(skiId) {
-  return userSammlung ? userSammlung.doc('bild-' + skiId) : ghDokument('bilder/bild-' + skiId + '.json');
+  return userSammlung.doc('bild-' + skiId);
 }
 
 async function bilderLaden() {
@@ -2079,18 +2060,6 @@ async function dbSchreiben(erzwingen = false) {
     statusMelden('');
     return true;
   } catch (err) {
-    if (err && err.code === 'konflikt') {
-      // GitHub hat inzwischen eine neuere Version: deren Stand übernehmen
-      try {
-        const snap = await datenRef.get();
-        if (snap.exists) {
-          await remoteUebernehmen(ausDatenMachen(kopie(snap.data())));
-          return 'konflikt';
-        }
-      } catch (err2) {
-        console.warn('Neuer Stand konnte nicht geladen werden', err2);
-      }
-    }
     console.warn('Speichern nicht möglich', err);
     statusMelden('Nicht gespeichert.');
     return false;
@@ -2121,126 +2090,6 @@ async function neuLaden() {
   } catch (err) {
     console.warn('Neu laden nicht möglich', err);
   }
-}
-
-// ============================================================
-// 11. GitHub-Speicher: Einträge in einer privaten Repo-Datei, Verbindung mit einem Zugangs-Token
-// ============================================================
-
-const GH_KONFIG = 'stuwax-github';
-const ghShas = {}; // Pfad -> Version (sha) der Datei auf GitHub
-
-function ghConfig() {
-  try {
-    return JSON.parse(localStorage.getItem(GH_KONFIG) || 'null');
-  } catch (err) {
-    return null;
-  }
-}
-
-function ghKopf(token) {
-  return {
-    Accept: 'application/vnd.github+json',
-    Authorization: 'Bearer ' + token,
-    'X-GitHub-Api-Version': '2022-11-28'
-  };
-}
-
-function ghEncode(text) {
-  let binaer = '';
-  for (const b of new TextEncoder().encode(text)) binaer += String.fromCharCode(b);
-  return btoa(binaer);
-}
-
-function ghDecode(base64) {
-  const binaer = atob(base64.replace(/\n/g, ''));
-  return new TextDecoder().decode(Uint8Array.from(binaer, c => c.charCodeAt(0)));
-}
-
-async function ghAnfrage(methode, pfad, body) {
-  const conf = ghConfig();
-  const url = 'https://api.github.com/repos/' + conf.repo + '/contents/' + pfad.split('/').map(encodeURIComponent).join('/');
-  const kopf = ghKopf(conf.token);
-  if (body) kopf['Content-Type'] = 'application/json';
-  return fetch(url, { method: methode, headers: kopf, body: body ? JSON.stringify(body) : undefined });
-}
-
-// Dokument mit derselben Schnittstelle wie in der Datenbank: get, set, delete
-function ghDokument(pfad) {
-  return {
-    path: pfad,
-    github: true,
-    async get() {
-      const antwort = await ghAnfrage('GET', pfad);
-      if (antwort.status === 404) {
-        delete ghShas[pfad];
-        return { id: pfad, exists: false, data: () => undefined, metadata: {} };
-      }
-      if (!antwort.ok) throw new Error('GitHub ' + antwort.status);
-      const json = await antwort.json();
-      ghShas[pfad] = json.sha;
-      const daten = JSON.parse(ghDecode(json.content));
-      return { id: pfad, exists: true, data: () => daten, metadata: {} };
-    },
-    async set(daten) {
-      // Bilder dürfen überschrieben werden. Beim Stand gilt nur die Version, die zuletzt gelesen wurde.
-      if (pfad.startsWith('bilder/') && !ghShas[pfad]) await this.get();
-      const body = {
-        message: pfad.startsWith('bilder/') ? 'Bild gespeichert' : 'Stand gespeichert',
-        content: ghEncode(JSON.stringify(daten))
-      };
-      if (ghShas[pfad]) body.sha = ghShas[pfad];
-      const antwort = await ghAnfrage('PUT', pfad, body);
-      if (antwort.status === 409 || antwort.status === 422) {
-        delete ghShas[pfad];
-        const fehler = new Error('Versionskonflikt');
-        fehler.code = 'konflikt';
-        throw fehler;
-      }
-      if (!antwort.ok) throw new Error('GitHub ' + antwort.status);
-      const json = await antwort.json();
-      ghShas[pfad] = json.content.sha;
-    },
-    async delete() {
-      if (!ghShas[pfad]) await this.get();
-      if (!ghShas[pfad]) return;
-      const antwort = await ghAnfrage('DELETE', pfad, { message: 'Bild entfernt', sha: ghShas[pfad] });
-      if (antwort.status !== 404 && !antwort.ok) throw new Error('GitHub ' + antwort.status);
-      delete ghShas[pfad];
-    }
-  };
-}
-
-// Verbinden: Repo und Token prüfen, dann die Seite mit dem GitHub-Speicher neu laden
-async function ghVerbinden() {
-  const repo = homeUI.ghRepo.value.trim();
-  const token = homeUI.ghToken.value.trim();
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo) || !token) {
-    homeUI.ghMeldung.textContent = 'Repo als Besitzer/Name und den Token eingeben.';
-    return;
-  }
-  try {
-    const antwort = await fetch('https://api.github.com/repos/' + repo, { headers: ghKopf(token) });
-    if (!antwort.ok) throw new Error('GitHub ' + antwort.status);
-  } catch (err) {
-    console.warn('GitHub-Verbindung fehlgeschlagen', err);
-    homeUI.ghMeldung.textContent = 'Verbindung nicht möglich. Repo und Token prüfen.';
-    return;
-  }
-  localStorage.setItem(GH_KONFIG, JSON.stringify({ repo, token }));
-  location.reload();
-}
-
-// Trennen: der aktuelle Stand bleibt im Browser dieses Geräts erhalten
-function ghTrennen() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    localStorage.removeItem(GH_KONFIG);
-  } catch (err) {
-    homeUI.ghMeldung.textContent = 'Im Browser ist kein Platz dafür.';
-    return;
-  }
-  location.reload();
 }
 
 // Vergleichbarer Fingerabdruck des Stands, unabhängig von der Reihenfolge der Felder
@@ -2358,34 +2207,13 @@ async function starte() {
     } catch (err) {
       console.warn('Datenbank nicht verfügbar', err);
     }
-  } else if (ghConfig()) {
-    // Ohne Artefakt: die Einträge liegen im GitHub-Repo
-    datenRef = ghDokument('daten.json');
   }
   if (datenRef) {
-    let migrieren = false;
     try {
       const snap = await datenRef.get();
-      if (snap.exists) {
-        state = ausDatenMachen(kopie(snap.data()));
-      } else if (datenRef.github && localStorage.getItem(STORAGE_KEY)) {
-        // Erste Verbindung: die Einträge aus diesem Browser übernehmen
-        state = ausDatenMachen(JSON.parse(localStorage.getItem(STORAGE_KEY)));
-        migrieren = true;
-      } else {
-        state = ausDatenMachen(null);
-      }
+      state = ausDatenMachen(snap.exists ? kopie(snap.data()) : null);
       zuletztBekannt = fingerabdruck(state);
       await bilderLaden();
-      if (migrieren) {
-        for (const s of state.skis) {
-          if (s.bild) {
-            await bildRef(s.id).set({ bild: s.bild });
-            s.hatBild = true;
-          }
-        }
-        if (await dbSchreiben(true)) localStorage.removeItem(STORAGE_KEY);
-      }
     } catch (err) {
       // Ohne den gespeicherten Stand darf nichts überschrieben werden
       console.warn('Einträge nicht geladen', err);
