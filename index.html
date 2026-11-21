@@ -378,26 +378,34 @@ const VOLA_BASE_HART = ['Base Hard', 'Base Medium', 'Base Medium Race', 'Base So
   'Premium MX901', 'Graphite', 'Graphite LM', 'VRB', 'X-Hard'];
 const VOLA_BASE_FLUESSIG = ['MX-E Gelb', 'MX-E Rot', 'MX-E Violett', 'MX-E Blau'];
 
+// Diese Wachse gibt es in der App nicht. Die Nummern bleiben gleich, damit gespeicherte Einträge passen.
+const NICHT_VERWENDET = new Set([
+  'hart|Base Hard', 'hart|Base Medium Race', 'hart|Base Soft', 'hart|Base Soft Race',
+  'hart|Graphite', 'hart|Graphite LM', 'hart|VRB', 'hart|X-Hard',
+  'hart|LM Race Rot', 'hart|HM Race Blau', 'hart|HM Race Violett', 'hart|HM Race Rot', 'hart|HM Race Gelb',
+  'hart|LM Race MOLY Blau', 'hart|LM Race MOLY Rot', 'hart|LM Race MOLY Gelb',
+  'hart|HM Race MOLY Blau', 'hart|HM Race MOLY Violett', 'hart|HM Race MOLY Rot', 'hart|HM Race MOLY Gelb'
+]);
+
 function baueVolaWachse() {
   const liste = [];
   let n = 1;
+  const nimmAuf = (typ, name, kategorie) => {
+    const id = 'w' + n++;
+    if (NICHT_VERWENDET.has(typ + '|' + name)) return;
+    liste.push({ id, marke: 'Vola', name, typ, aktiv: true, kategorie });
+  };
   for (const typ of ['fluessig', 'hart']) {
     for (const linie of ['LM', 'HM', 'LMMOLY', 'HMMOLY']) {
       for (const farbe of Object.keys(VOLA_ZONE_NAMEN)) {
-        liste.push({ id: 'w' + n++, marke: 'Vola', name: `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, typ, aktiv: true, kategorie: 'rennwachs' });
+        nimmAuf(typ, `${VOLA_FAMILIEN_NAMEN[linie]} ${VOLA_ZONE_NAMEN[farbe]}`, 'rennwachs');
       }
     }
   }
-  for (const name of VOLA_BASE_HART) {
-    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'hart', aktiv: true, kategorie: 'basewachs' });
-  }
-  for (const name of VOLA_BASE_FLUESSIG) {
-    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'fluessig', aktiv: true, kategorie: 'basewachs' });
-  }
+  for (const name of VOLA_BASE_HART) nimmAuf('hart', name, 'basewachs');
+  for (const name of VOLA_BASE_FLUESSIG) nimmAuf('fluessig', name, 'basewachs');
   // Die MX-E-Wachse gibt es zusätzlich bei Hart Base
-  for (const name of VOLA_BASE_FLUESSIG) {
-    liste.push({ id: 'w' + n++, marke: 'Vola', name, typ: 'hart', aktiv: true, kategorie: 'basewachs' });
-  }
+  for (const name of VOLA_BASE_FLUESSIG) nimmAuf('hart', name, 'basewachs');
   return liste;
 }
 
