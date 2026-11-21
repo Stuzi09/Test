@@ -536,6 +536,7 @@ let userSammlung = null;
 let schreibGesperrt = false;
 let dbSchreibt = false;
 let dbWartet = false;
+let zuletztBekannt = null; // Fingerabdruck des Stands, wie er zuletzt in der Datenbank lag
 
 // ============================================================
 // 4. Zugriffe auf den Zustand
@@ -578,6 +579,9 @@ function baueHome() {
   homeUI.ergebnis = h('div', { class: 'ergebnis' });
   homeUI.wachsListe = h('div', { class: 'wachsliste' });
   homeUI.meldung = h('div', { class: 'hinweis' });
+  homeUI.sichernKnopf = h('button', { class: 'knopf-sekundaer', type: 'button', onclick: sichernDatei }, 'Sichern');
+  homeUI.wiederherstellen = h('input', { type: 'file', accept: '.json,application/json', onchange: wiederherstellenWaehlen });
+  homeUI.datenMeldung = h('div', { class: 'hinweis' });
 
   homeUI.kpi = h('div', { class: 'kpi-zeile' });
   sektion.append(
@@ -605,6 +609,13 @@ function baueHome() {
     h('div', { class: 'panel' },
       h('h2', {}, 'Meine Wachse'),
       homeUI.wachsListe
+    ),
+    h('div', { class: 'panel' },
+      h('h2', {}, 'Daten'),
+      h('div', { class: 'zeile' }, homeUI.sichernKnopf),
+      h('label', { class: 'lbl' }, 'Wiederherstellen'),
+      homeUI.wiederherstellen,
+      homeUI.datenMeldung
     )
   );
 }
@@ -2011,21 +2022,42 @@ async function bilderLaden() {
 }
 
 // Schreibt den ganzen Stand. Es läuft immer nur ein Schreibvorgang, Änderungen während dessen folgen danach.
-async function dbSchreiben() {
+async function dbSchreiben(erzwingen = false) {
   if (dbSchreibt) {
     dbWartet = true;
-    return;
+    return true;
   }
   dbSchreibt = true;
   try {
+    let vorab = erzwingen;
     do {
       dbWartet = false;
-      await datenRef.set(zuDb(state));
+      // Vor dem Schreiben prüfen: Hat ein anderes Gerät inzwischen geschrieben, gilt dessen Stand
+      if (!vorab && zuletztBekannt !== null) {
+        const snap = await datenRef.get();
+        if (snap.exists) {
+          const remote = ausDatenMachen(kopie(snap.data()));
+          if (fingerabdruck(remote) !== zuletztBekannt) {
+            state = remote;
+            zuletztBekannt = fingerabdruck(remote);
+            await bilderLaden();
+            alleAktualisieren();
+            statusMelden('Neuer Stand von einem anderen Gerät übernommen.');
+            return false;
+          }
+        }
+      }
+      vorab = false;
+      const payload = zuDb(state);
+      await datenRef.set(payload);
+      zuletztBekannt = fingerabdruck(payload);
     } while (dbWartet);
     statusMelden('');
+    return true;
   } catch (err) {
     console.warn('Speichern in der Datenbank nicht möglich', err);
     statusMelden('Nicht gespeichert.');
+    return false;
   } finally {
     dbSchreibt = false;
   }
@@ -2037,14 +2069,103 @@ async function neuLaden() {
   try {
     const snap = await datenRef.get();
     const neu = ausDatenMachen(snap.exists ? kopie(snap.data()) : null);
-    if (JSON.stringify(zuDb(neu)) === JSON.stringify(zuDb(state))) return;
+    if (fingerabdruck(neu) === fingerabdruck(state)) return;
     state = neu;
+    zuletztBekannt = fingerabdruck(neu);
     await bilderLaden();
     alleAktualisieren();
-    zeichneHomeKpi();
   } catch (err) {
     console.warn('Neu laden nicht möglich', err);
   }
+}
+
+// Vergleichbarer Fingerabdruck des Stands, unabhängig von der Reihenfolge der Felder
+function kanonisch(x) {
+  if (Array.isArray(x)) return x.map(kanonisch);
+  if (x && typeof x === 'object') {
+    const o = {};
+    for (const k of Object.keys(x).sort()) if (x[k] !== undefined) o[k] = kanonisch(x[k]);
+    return o;
+  }
+  return x;
+}
+
+function fingerabdruck(daten) {
+  return JSON.stringify(kanonisch(zuDb(daten)));
+}
+
+// Sicherung: Einträge, Wachse und Bilder als eine Datei
+async function sichernDatei() {
+  const bilder = {};
+  for (const s of state.skis) if (s.bild) bilder[s.id] = s.bild;
+  const inhalt = JSON.stringify({ version: 1, stand: zuDb(state), bilder });
+  const dateiname = 'stuwax-sicherung-' + heuteISO() + '.json';
+  try {
+    const downloads = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('downloads') : null;
+    if (downloads) {
+      await downloads.save({ filename: dateiname, data: inhalt });
+    } else {
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([inhalt], { type: 'application/json' }));
+      link.download = dateiname;
+      document.body.append(link);
+      link.click();
+      link.remove();
+    }
+    homeUI.datenMeldung.textContent = 'Gesichert.';
+  } catch (err) {
+    console.warn('Sicherung nicht möglich', err);
+    homeUI.datenMeldung.textContent = 'Die Sicherung wurde nicht gespeichert.';
+  }
+}
+
+// Datei gewählt: prüfen, dann nach Bestätigung einspielen
+function wiederherstellenWaehlen() {
+  const datei = homeUI.wiederherstellen.files[0];
+  homeUI.datenMeldung.textContent = '';
+  if (!datei) return;
+  datei.text().then(text => {
+    let daten = null;
+    try { daten = JSON.parse(text); } catch (err) { daten = null; }
+    homeUI.wiederherstellen.value = '';
+    if (!daten || !daten.stand || !Array.isArray(daten.stand.skis) || !Array.isArray(daten.stand.eintraege)) {
+      homeUI.datenMeldung.textContent = 'Das ist keine Sicherung von Stuwax.';
+      return;
+    }
+    bestaetigeInline(homeUI.datenMeldung, 'Alle Einträge durch diese Sicherung ersetzen?', () => wiederherstellen(daten));
+  }).catch(() => {
+    homeUI.datenMeldung.textContent = 'Die Datei konnte nicht gelesen werden.';
+  });
+}
+
+// Die Sicherung ersetzt Einträge, Wachse und Bilder
+async function wiederherstellen(daten) {
+  if (schreibGesperrt) {
+    homeUI.datenMeldung.textContent = 'Im Moment nicht möglich. Bitte die Seite neu öffnen.';
+    return;
+  }
+  const bilder = daten.bilder || {};
+  state = ausDatenMachen(kopie(daten.stand));
+  for (const s of state.skis) {
+    if (typeof bilder[s.id] === 'string') s.bild = bilder[s.id];
+    else delete s.bild;
+    s.hatBild = Boolean(s.bild);
+  }
+  let gespeichert = true;
+  if (datenRef) {
+    try {
+      await Promise.all(state.skis.map(s => (s.bild ? bildRef(s.id).set({ bild: s.bild }) : bildRef(s.id).delete())));
+    } catch (err) {
+      console.warn('Bilder nicht wiederhergestellt', err);
+      homeUI.datenMeldung.textContent = 'Die Bilder konnten nicht wiederhergestellt werden.';
+      return;
+    }
+    gespeichert = await dbSchreiben(true);
+  } else {
+    gespeichert = speichern();
+  }
+  alleAktualisieren();
+  homeUI.datenMeldung.textContent = gespeichert ? 'Wiederhergestellt.' : 'Die Wiederherstellung wurde nicht gespeichert.';
 }
 
 async function starte() {
@@ -2066,6 +2187,7 @@ async function starte() {
     try {
       const snap = await datenRef.get();
       state = ausDatenMachen(snap.exists ? kopie(snap.data()) : null);
+      zuletztBekannt = fingerabdruck(state);
       await bilderLaden();
     } catch (err) {
       // Ohne den gespeicherten Stand darf nichts überschrieben werden
