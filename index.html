@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Stuwax">
 <meta name="theme-color" content="#E9D9CA">
-<title>Stuwax</title>
+<title>Stuwax Wachsrechner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@200..900&display=swap" rel="stylesheet">
@@ -14,6 +14,7 @@
   /* Farben: Creme als Grund, Schwarz für Schrift, Linien und dunkle Flächen,
      Blau als Akzent, Orange für „bereit“. Ecken eckig, Flächen ohne Verlauf. */
   :root {
+    color-scheme: light;
     --creme: #E9D9CA;
     --schwarz: #111111;
     --blau: #4D6080;
@@ -24,6 +25,7 @@
   }
   * { box-sizing: border-box; }
   html { background: var(--creme); }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--creme); }
   body {
     margin: 0;
     min-height: 100vh;
@@ -36,12 +38,12 @@
 
   header {
     position: sticky;
-    top: 0;
+    top: env(safe-area-inset-top, 0px);
     z-index: 10;
     background: var(--creme);
     border-bottom: 1.5px solid var(--schwarz);
     min-height: 88px;
-    padding: 0 16px;
+    padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -69,12 +71,12 @@
   nav a:hover { color: var(--schwarz); }
   nav a.aktiv { color: var(--schwarz); border-bottom-color: var(--blau); }
   @media (min-width: 768px) {
-    header { display: grid; grid-template-columns: 1fr auto 1fr; padding: 0 24px; }
+    header { display: grid; grid-template-columns: 1fr auto 1fr; padding-inline: max(24px, env(safe-area-inset-left, 0px)) max(24px, env(safe-area-inset-right, 0px)); }
     .logo { margin-right: 0; }
     nav { justify-content: center; }
   }
 
-  main { position: relative; max-width: 760px; margin: 0 auto; padding: 0 16px 48px; }
+  main { position: relative; max-width: 760px; margin: 0 auto; padding-block: 0 48px; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); }
   main > section { display: none; padding-top: 24px; }
   main > section.aktiv { display: block; }
 
@@ -298,7 +300,7 @@
   .trenner { margin: 16px 0; border: 0; border-top: 1.5px solid var(--schwarz); }
 
   /* Fusszeile: schwarzes Band mit echten Angaben zur App */
-  footer.kontakt { padding: 30px 16px 36px; background: var(--schwarz); color: var(--creme); }
+  footer.kontakt { padding-block: 30px 36px; padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px)); background: var(--schwarz); color: var(--creme); }
   footer.kontakt .innen { max-width: 760px; margin: 0 auto; }
   footer.kontakt .wortmarke { font-size: 1.4rem; }
 
@@ -323,6 +325,7 @@
 </header>
 
 <main>
+  <p class="hinweis" id="speicherstatus" role="status" hidden></p>
   <section id="home"></section>
   <section id="slalom"></section>
   <section id="riesenslalom"></section>
@@ -500,19 +503,7 @@ function volaZone(t) {
 function ladeState() {
   try {
     const roh = localStorage.getItem(STORAGE_KEY);
-    if (roh) {
-      const daten = JSON.parse(roh);
-      // Gespeicherte Fremdmarken durch die Wöhler-Wachse ersetzen
-      if (Array.isArray(daten.wachse)) {
-        // Wachsliste immer aus der Vorgabe aufbauen, gespeichert bleiben nur die Häkchen (aktiv)
-        daten.wachse = DEMO.wachse.map(d => {
-          const alt = daten.wachse.find(w => w.name === d.name && w.typ === d.typ && w.kategorie === d.kategorie)
-            || daten.wachse.find(w => w.name === d.name);
-          return { ...d, aktiv: alt ? alt.aktiv : d.aktiv };
-        });
-      }
-      return daten;
-    }
+    if (roh) return ausDatenMachen(JSON.parse(roh));
   } catch (err) {
     console.warn('Gespeicherte Daten konnten nicht gelesen werden', err);
   }
@@ -520,6 +511,14 @@ function ladeState() {
 }
 
 function speichern() {
+  if (schreibGesperrt) {
+    statusMelden('Nicht gespeichert.');
+    return false;
+  }
+  if (datenRef) {
+    dbSchreiben();
+    return true;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     return true;
@@ -529,7 +528,14 @@ function speichern() {
   }
 }
 
-let state = ladeState();
+let state = kopie(DEMO);
+
+// Speicherort: Datenbank des Artefakts (mit Claude-Konto) oder Browser dieses Geräts
+let datenRef = null;
+let userSammlung = null;
+let schreibGesperrt = false;
+let dbSchreibt = false;
+let dbWartet = false;
 
 // ============================================================
 // 4. Zugriffe auf den Zustand
@@ -1469,7 +1475,7 @@ function skiBearbeiten(key) {
     : `Gespeichert. Der Ski liegt jetzt bei ${DISZIPLINEN.find(x => x.key === neu).titel}.`;
 }
 
-// Bild eines Skis: wird verkleinert gespeichert, damit der Speicher im Browser reicht
+// Bild eines Skis: wird verkleinert, damit es in ein Datenbank-Dokument passt
 function bildVerkleinern(datei) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1478,12 +1484,12 @@ function bildVerkleinern(datei) {
       const bild = new Image();
       bild.onerror = reject;
       bild.onload = () => {
-        const skala = Math.min(1, 800 / Math.max(bild.width, bild.height));
+        const skala = Math.min(1, 640 / Math.max(bild.width, bild.height));
         const leinwand = document.createElement('canvas');
         leinwand.width = Math.round(bild.width * skala);
         leinwand.height = Math.round(bild.height * skala);
         leinwand.getContext('2d').drawImage(bild, 0, 0, leinwand.width, leinwand.height);
-        resolve(leinwand.toDataURL('image/jpeg', 0.8));
+        resolve(leinwand.toDataURL('image/jpeg', 0.78));
       };
       bild.src = reader.result;
     };
@@ -1496,13 +1502,26 @@ function skiBildHochladen(key) {
   const ski = state.skis.find(s => s.id === ui.bearbAuswahl.value);
   const datei = ui.bearbBildDatei.files[0];
   if (!ski || !datei) return;
-  bildVerkleinern(datei).then(bild => {
-    const alt = ski.bild;
-    ski.bild = bild;
-    if (!speichern()) {
-      ski.bild = alt;
-      ui.bearbMeldung.textContent = 'Im Browser ist kein Platz mehr für dieses Bild.';
-      return;
+  bildVerkleinern(datei).then(async bild => {
+    if (datenRef) {
+      try {
+        await bildRef(ski.id).set({ bild });
+      } catch (err) {
+        console.warn('Bild nicht gespeichert', err);
+        ui.bearbMeldung.textContent = 'Das Bild konnte nicht gespeichert werden.';
+        return;
+      }
+      ski.bild = bild;
+      ski.hatBild = true;
+      speichern();
+    } else {
+      const alt = ski.bild;
+      ski.bild = bild;
+      if (!speichern()) {
+        ski.bild = alt;
+        ui.bearbMeldung.textContent = 'Im Browser ist kein Platz mehr für dieses Bild.';
+        return;
+      }
     }
     ui.bearbBildDatei.value = '';
     alleAktualisieren();
@@ -1511,10 +1530,20 @@ function skiBildHochladen(key) {
   });
 }
 
-function skiBildEntfernen(key) {
+async function skiBildEntfernen(key) {
   const ui = UI[key];
   const ski = state.skis.find(s => s.id === ui.bearbAuswahl.value);
   if (!ski || !ski.bild) return;
+  if (datenRef) {
+    try {
+      await bildRef(ski.id).delete();
+    } catch (err) {
+      console.warn('Bild nicht entfernt', err);
+      ui.bearbMeldung.textContent = 'Das Bild konnte nicht entfernt werden.';
+      return;
+    }
+    ski.hatBild = false;
+  }
   delete ski.bild;
   speichern();
   alleAktualisieren();
@@ -1938,11 +1967,125 @@ window.addEventListener('scroll', () => {
   document.querySelector('header').classList.toggle('klein', window.scrollY > 24);
 }, { passive: true });
 
-baueHome();
-for (const d of DISZIPLINEN) baueDisziplin(d);
-alleAktualisieren();
-window.addEventListener('hashchange', route);
-route();
+// Daten aus der Datenbank des Artefakts (Konto) oder aus dem Browser dieses Geräts
+function ausDatenMachen(roh) {
+  const daten = roh && typeof roh === 'object' ? roh : kopie(DEMO);
+  if (Array.isArray(daten.wachse)) {
+    // Wachsliste immer aus der Vorgabe aufbauen, gespeichert bleiben nur die Häkchen (aktiv)
+    daten.wachse = DEMO.wachse.map(d => {
+      const alt = daten.wachse.find(w => w.name === d.name && w.typ === d.typ && w.kategorie === d.kategorie)
+        || daten.wachse.find(w => w.name === d.name);
+      return { ...d, aktiv: alt ? alt.aktiv : d.aktiv };
+    });
+  } else {
+    daten.wachse = kopie(DEMO.wachse);
+  }
+  if (!Array.isArray(daten.skis)) daten.skis = [];
+  if (!Array.isArray(daten.eintraege)) daten.eintraege = [];
+  return daten;
+}
+
+// Im Dokument stehen die Einträge; das Bild jedes Skis liegt in einem eigenen Dokument
+function zuDb(daten) {
+  return {
+    ...daten,
+    skis: daten.skis.map(({ bild, hatBild, ...rest }) => ({ ...rest, hatBild: Boolean(bild) || Boolean(hatBild) }))
+  };
+}
+
+function statusMelden(text) {
+  const box = document.getElementById('speicherstatus');
+  box.textContent = text;
+  box.hidden = !text;
+}
+
+function bildRef(skiId) {
+  return userSammlung.doc('bild-' + skiId);
+}
+
+async function bilderLaden() {
+  await Promise.all(state.skis.filter(s => s.hatBild).map(async s => {
+    const snap = await bildRef(s.id).get();
+    if (snap.exists) s.bild = snap.data().bild;
+  }));
+}
+
+// Schreibt den ganzen Stand. Es läuft immer nur ein Schreibvorgang, Änderungen während dessen folgen danach.
+async function dbSchreiben() {
+  if (dbSchreibt) {
+    dbWartet = true;
+    return;
+  }
+  dbSchreibt = true;
+  try {
+    do {
+      dbWartet = false;
+      await datenRef.set(zuDb(state));
+    } while (dbWartet);
+    statusMelden('');
+  } catch (err) {
+    console.warn('Speichern in der Datenbank nicht möglich', err);
+    statusMelden('Nicht gespeichert.');
+  } finally {
+    dbSchreibt = false;
+  }
+}
+
+// Holt den Stand neu, sobald die Seite wieder sichtbar ist, etwa nach einer Änderung auf einem anderen Gerät
+async function neuLaden() {
+  if (document.visibilityState !== 'visible' || !datenRef || dbSchreibt || dbWartet) return;
+  try {
+    const snap = await datenRef.get();
+    const neu = ausDatenMachen(snap.exists ? kopie(snap.data()) : null);
+    if (JSON.stringify(zuDb(neu)) === JSON.stringify(zuDb(state))) return;
+    state = neu;
+    await bilderLaden();
+    alleAktualisieren();
+    zeichneHomeKpi();
+  } catch (err) {
+    console.warn('Neu laden nicht möglich', err);
+  }
+}
+
+async function starte() {
+  const claude = window.claude;
+  if (claude && typeof claude.use === 'function') {
+    try {
+      const db = await claude.use('db');
+      const user = await claude.use('user');
+      const id = db && user ? await user.id() : null;
+      if (db && id) {
+        userSammlung = db.collection('data/users/' + id);
+        datenRef = userSammlung.doc('app');
+      }
+    } catch (err) {
+      console.warn('Datenbank nicht verfügbar', err);
+    }
+  }
+  if (datenRef) {
+    try {
+      const snap = await datenRef.get();
+      state = ausDatenMachen(snap.exists ? kopie(snap.data()) : null);
+      await bilderLaden();
+    } catch (err) {
+      // Ohne den gespeicherten Stand darf nichts überschrieben werden
+      console.warn('Einträge nicht geladen', err);
+      schreibGesperrt = true;
+      state = ausDatenMachen(null);
+      statusMelden('Nicht geladen. Bitte die Seite neu öffnen.');
+    }
+  } else {
+    state = ladeState();
+  }
+  baueHome();
+  for (const d of DISZIPLINEN) baueDisziplin(d);
+  alleAktualisieren();
+  window.addEventListener('hashchange', route);
+  route();
+  document.addEventListener('visibilitychange', neuLaden);
+}
+
+starte().catch(err => console.error('Start fehlgeschlagen', err));
 </script>
 
 </body>
