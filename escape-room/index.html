@@ -1,0 +1,344 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Der verschlossene Keller</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Courier+Prime&display=swap">
+<style>
+/* One narrow column, phone first. Palette: a dim cellar lit by a single lamp.
+   Type: a serif for titles, a typewriter face for clues, system UI for controls. */
+:root {
+  color-scheme: dark;
+  --bg: #13110e;
+  --panel: #1e1a15;
+  --line: #3b3228;
+  --fg: #ece3d3;
+  --muted: #a09480;
+  --accent: #e3a84f;
+  --accent-ink: #1a140c;
+  --bad: #e07a63;
+  --good: #9cc985;
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  --mono: "Courier Prime", "Courier New", Courier, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 var(--sans);
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.app { max-width: 440px; margin: 0 auto; min-width: 0; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.eyebrow { margin: 0; font: 13px/1.2 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.dots { display: flex; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--muted); }
+.dot.done { background: var(--accent); border-color: var(--accent); }
+.dot.now { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(227, 168, 79, .22); }
+.card { margin-top: 22px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 24px 20px; min-width: 0; }
+h1, h2 { font-family: var(--serif); font-weight: 700; line-height: 1.1; margin: 6px 0 12px; text-wrap: balance; }
+h1 { font-size: 40px; }
+h2 { font-size: 32px; }
+p { margin: 0 0 14px; }
+.lead { font-size: 17px; }
+.clue { font: 17px/1.55 var(--mono); }
+.plaque { display: inline-block; max-width: 100%; margin: 6px 0 16px; padding: 8px 14px; border: 1px solid var(--accent); color: var(--accent); font: 700 26px/1.2 var(--serif); letter-spacing: .12em; overflow-wrap: anywhere; }
+.sequence { margin: 6px 0 16px; font: 22px/1.4 var(--mono); letter-spacing: .04em; color: var(--accent); overflow-wrap: anywhere; }
+form { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; }
+label { font: 13px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+input { width: 100%; min-width: 0; padding: 12px 14px; font: 22px var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+input::placeholder { color: #6d6252; }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn { min-height: 48px; padding: 0 18px; font: 600 16px var(--sans); color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; }
+.btn.ghost { color: var(--fg); background: transparent; border-color: var(--line); }
+.btn.wide { width: 100%; }
+.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.feedback { min-height: 1.6em; margin: 10px 0 0; font: 15px/1.4 var(--mono); }
+.feedback.bad { color: var(--bad); }
+.feedback.good { color: var(--good); }
+.hints { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+.hint { margin: 0; padding: 10px 12px; font: 15px/1.5 var(--mono); color: var(--muted); background: rgba(227, 168, 79, .08); border-radius: 4px; }
+.hint-btn { margin-top: 14px; }
+.foot { margin-top: 20px; display: flex; justify-content: flex-end; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 18px; }
+.stat { margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: 4px; min-width: 0; }
+.stat dt { font: 12px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stat dd { margin: 4px 0 0; font: 700 30px/1.1 var(--serif); font-variant-numeric: tabular-nums; }
+.shake { animation: shake .4s; }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+@media (prefers-reduced-motion: reduce) { .shake { animation: none; } }
+</style>
+
+<main class="app" id="app"></main>
+
+<script>
+const KEY = "verschlossener-keller-v1";
+const ARTICLES = ["der", "die", "das", "ein", "eine", "einen", "dem", "den"];
+
+const ROOMS = [
+  {
+    title: "Die Kellertür",
+    scene: "Die Tür ist aus schwerem Holz und hat ein Zahlenschloss mit vier Ziffern. Über dem Rahmen hängt ein Messingschild mit einer Jahreszahl. Sie ist in römischen Ziffern geschrieben:",
+    plaque: "MDCCCLXV",
+    question: "Gib die Zahl ein, die dort steht.",
+    label: "Vierstellige Zahl",
+    placeholder: "0000",
+    inputmode: "numeric",
+    answers: ["1865"],
+    hints: [
+      "Römische Zahlen: M = 1000, D = 500, C = 100, L = 50, X = 10, V = 5, I = 1.",
+      "Steht ein kleineres Zeichen vor einem grösseren, wird es abgezogen. Hier kommt das nirgends vor, also alles zusammenzählen."
+    ],
+    success: "Das Schloss klickt. Die Tür schwingt auf, und dahinter steht ein Regal mit einem Zettel."
+  },
+  {
+    title: "Das Regal",
+    scene: "Auf dem obersten Brett liegt ein Zettel, handschriftlich und ziemlich verstaubt. Darauf steht eine einzige Frage:",
+    riddle: "«Je mehr man davon wegnimmt, desto grösser wird es. Was ist es?»",
+    question: "Schreib die Antwort als ein Wort.",
+    label: "Antwort",
+    placeholder: "Ein Wort",
+    inputmode: "text",
+    answers: ["loch"],
+    hints: [
+      "Denk an etwas, das leer ist.",
+      "Man findet es in einer Wand, in einem Socken oder im Emmentaler."
+    ],
+    success: "Unter dem Zettel liegt eine Karte mit einer Zahlenreihe. Sie gehört zum Tresor in der Ecke."
+  },
+  {
+    title: "Der Tresor",
+    scene: "In der Ecke steht ein alter Tresor. Auf der Front ist eine Zahlenreihe eingraviert, und die letzte Stelle ist leer:",
+    sequence: "1, 1, 2, 3, 5, 8, ?",
+    question: "Welche Zahl fehlt?",
+    label: "Fehlende Zahl",
+    placeholder: "Zahl",
+    inputmode: "numeric",
+    answers: ["13"],
+    hints: [
+      "Jede Zahl ist die Summe der beiden Zahlen davor.",
+      "Nimm 5 und 8. Was ergibt das?"
+    ],
+    success: "Der Tresor springt auf. Darin liegt der Schlüssel für die Kellertür, und der Weg nach oben ist frei."
+  }
+];
+
+const fresh = () => ({
+  started: false,
+  room: 0,
+  hintsOpen: 0,
+  hintsUsed: 0,
+  startedAt: null,
+  finishedAt: null,
+  justSolved: null
+});
+
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s && Number.isInteger(s.room) && s.room >= 0 && s.room <= ROOMS.length) {
+      return { ...fresh(), ...s };
+    }
+  } catch (e) {}
+  return fresh();
+}
+
+function saveState() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+let state = loadState();
+let armed = null;
+const app = document.getElementById("app");
+
+// Ignores case, spaces, a leading article and umlauts: "Das Loch" and "loch" both count.
+function norm(text) {
+  const words = String(text).trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (words.length > 1 && ARTICLES.includes(words[0])) words.shift();
+  return words.join("")
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function fmt(ms) {
+  const sec = Math.max(0, Math.round(ms / 1000));
+  return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+}
+
+function header() {
+  const done = state.room;
+  const dots = ROOMS.map((_, i) => {
+    let cls = "dot";
+    if (i < done) cls += " done";
+    else if (i === done && done < ROOMS.length) cls += " now";
+    return '<span class="' + cls + '"></span>';
+  }).join("");
+  return '<div class="top"><p class="eyebrow">Solospiel</p>' +
+    '<div class="dots" role="img" aria-label="' + done + ' von ' + ROOMS.length + ' Räumen gelöst">' + dots + '</div></div>';
+}
+
+function viewIntro() {
+  return header() + `
+    <section class="card">
+      <h1>Der verschlossene Keller</h1>
+      <p class="lead">Du wachst im Keller eines alten Hauses auf. Die Tür ist zu. Drei Räume trennen dich vom Ausgang, und in jedem liegt ein Rätsel.</p>
+      <p class="lead">Du kommst nur weiter, wenn du das Rätsel löst. Dein Fortschritt wird auf diesem Gerät gespeichert.</p>
+      <button class="btn wide" data-action="start">Anfangen</button>
+    </section>`;
+}
+
+function viewPlay() {
+  const i = state.room;
+  const room = ROOMS[i];
+  let puzzle = "";
+  if (room.plaque) puzzle = '<div class="plaque">' + room.plaque + '</div>';
+  if (room.riddle) puzzle = '<p class="clue">' + room.riddle + '</p>';
+  if (room.sequence) puzzle = '<div class="sequence">' + room.sequence + '</div>';
+
+  const shown = room.hints.slice(0, state.hintsOpen)
+    .map(h => '<p class="hint">' + h + '</p>').join("");
+  const canHint = state.hintsOpen < room.hints.length;
+
+  return header() + `
+    <section class="card">
+      <p class="eyebrow">Raum ${i + 1} von ${ROOMS.length}</p>
+      <h2>${room.title}</h2>
+      <p class="lead">${room.scene}</p>
+      ${puzzle}
+      <p class="clue">${room.question}</p>
+      <form id="answer-form" novalidate>
+        <label for="answer">${room.label}</label>
+        <input id="answer" name="answer" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="${room.inputmode}" placeholder="${room.placeholder}">
+        <button class="btn" type="submit">Prüfen</button>
+        <p class="feedback" id="feedback" aria-live="polite"></p>
+      </form>
+      ${shown ? '<div class="hints">' + shown + '</div>' : ""}
+      ${canHint ? '<button class="btn ghost wide hint-btn" data-action="hint">Hinweis ' + (state.hintsOpen + 1) + ' von ' + room.hints.length + ' zeigen</button>' : ""}
+    </section>
+    <div class="foot"><button class="btn ghost" data-action="reset">Neu anfangen</button></div>`;
+}
+
+function viewSolved(i) {
+  const last = i === ROOMS.length - 1;
+  const label = last ? "Zum Ausgang" : "Weiter zu Raum " + (i + 2);
+  return header() + `
+    <section class="card">
+      <p class="eyebrow">Raum ${i + 1} gelöst</p>
+      <h2>Richtig.</h2>
+      <p class="lead">${ROOMS[i].success}</p>
+      <button class="btn wide" data-action="next">${label}</button>
+    </section>`;
+}
+
+function viewEnd() {
+  const spent = (state.finishedAt || Date.now()) - (state.startedAt || Date.now());
+  return header() + `
+    <section class="card">
+      <p class="eyebrow">Ausgang</p>
+      <h1>Du bist draussen.</h1>
+      <p class="lead">Draussen ist es kalt und hell. Du hast den Keller hinter dir gelassen.</p>
+      <dl class="stats">
+        <div class="stat"><dt>Zeit</dt><dd>${fmt(spent)}</dd></div>
+        <div class="stat"><dt>Hinweise</dt><dd>${state.hintsUsed}</dd></div>
+      </dl>
+      <button class="btn wide" data-action="again">Nochmal spielen</button>
+    </section>`;
+}
+
+function render(keepDraft) {
+  const draft = keepDraft ? (document.getElementById("answer")?.value ?? "") : "";
+  let html;
+  if (!state.started) html = viewIntro();
+  else if (state.justSolved !== null) html = viewSolved(state.justSolved);
+  else if (state.room >= ROOMS.length) html = viewEnd();
+  else html = viewPlay();
+  app.innerHTML = html;
+  const input = document.getElementById("answer");
+  if (input && draft) input.value = draft;
+}
+
+function setFeedback(text, kind) {
+  const f = document.getElementById("feedback");
+  if (!f) return;
+  f.textContent = text;
+  f.className = "feedback " + kind;
+}
+
+function checkAnswer() {
+  const input = document.getElementById("answer");
+  const i = state.room;
+  const given = norm(input.value);
+  if (!given) {
+    setFeedback("Gib zuerst etwas ein.", "bad");
+    return;
+  }
+  if (ROOMS[i].answers.map(norm).includes(given)) {
+    state.justSolved = i;
+    state.room = i + 1;
+    state.hintsOpen = 0;
+    if (state.room >= ROOMS.length) state.finishedAt = Date.now();
+    saveState();
+    render();
+    return;
+  }
+  setFeedback("Das stimmt nicht. Schau nochmal genau hin.", "bad");
+  input.classList.remove("shake");
+  void input.offsetWidth;
+  input.classList.add("shake");
+  input.select();
+}
+
+document.addEventListener("submit", (e) => {
+  if (e.target.id !== "answer-form") return;
+  e.preventDefault();
+  checkAnswer();
+});
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+  const action = btn.dataset.action;
+
+  if (action === "start") {
+    state.started = true;
+    state.startedAt = Date.now();
+    saveState();
+    render();
+  } else if (action === "hint") {
+    const room = ROOMS[state.room];
+    if (state.hintsOpen < room.hints.length) {
+      state.hintsOpen++;
+      state.hintsUsed++;
+      saveState();
+      render(true);
+    }
+  } else if (action === "next") {
+    state.justSolved = null;
+    saveState();
+    render();
+  } else if (action === "reset") {
+    // Two taps, so a stray tap does not wipe the run.
+    if (!armed) {
+      btn.textContent = "Sicher? Nochmal tippen";
+      armed = setTimeout(() => {
+        armed = null;
+        btn.textContent = "Neu anfangen";
+      }, 3000);
+      return;
+    }
+    clearTimeout(armed);
+    armed = null;
+    state = fresh();
+    saveState();
+    render();
+  } else if (action === "again") {
+    state = fresh();
+    saveState();
+    render();
+  }
+});
+
+render();
+</script>
